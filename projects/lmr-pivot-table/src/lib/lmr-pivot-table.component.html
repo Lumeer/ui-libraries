@@ -1,0 +1,6 @@
+<pivot-tables *ngIf="pivotConfig"
+              [pivotData]="pivotData$ | async"
+              [constraintData]="constraintData"
+              [dataLoaded]="dataLoaded"
+              (cellClick)="cellClick.emit($event)">
+</pivot-tables>
