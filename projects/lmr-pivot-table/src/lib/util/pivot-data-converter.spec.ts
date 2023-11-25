@@ -16,14 +16,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {LOCALE_ID} from '@angular/core';
-import {TestBed} from '@angular/core/testing';
-
 import {AttributesResourceType, Collection, DataAggregationType, DataResource, DocumentModel, DocumentsAndLinksData, LinkInstance, LinkType, Query, UnknownConstraint} from '@lumeer/data-filters';
 
 
 import {PivotDataConverter} from './pivot-data-converter';
-import {PivotConfig} from './pivot-config';
+import {LmrPivotConfig, LmrPivotTransform} from './lmr-pivot-config';
 
 const documents: DocumentModel[] = [
   {collectionId: 'C1', id: 'D1', data: {a1: 'abc'}},
@@ -257,16 +254,20 @@ const data: DocumentsAndLinksData = {
 };
 
 describe('Pivot data converter', () => {
-  const dataConverter: PivotDataConverter = new PivotDataConverter((c1, c2) => c1, type => type.toString());
+  const transform: LmrPivotTransform = {
+    translateAggregation: type => type.toString(),
+    checkValidConstraintOverride: (c1, c2) => c1,
+  }
+  const dataConverter: PivotDataConverter = new PivotDataConverter();
 
   it('should return empty data', () => {
-    const config: PivotConfig = {stemsConfigs: [{rowAttributes: [], columnAttributes: [], valueAttributes: []}]};
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const config: LmrPivotConfig = {stemsConfigs: [{rowAttributes: [], columnAttributes: [], valueAttributes: []}]};
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data).toEqual([]);
   });
 
   it('should return by one row', () => {
-    const config: PivotConfig = {
+    const config: LmrPivotConfig = {
       stemsConfigs: [
         {
           rowAttributes: [
@@ -277,7 +278,7 @@ describe('Pivot data converter', () => {
         },
       ],
     };
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([
       {
         title: 'a',
@@ -310,7 +311,7 @@ describe('Pivot data converter', () => {
   });
 
   it('should return by one column', () => {
-    const config: PivotConfig = {
+    const config: LmrPivotConfig = {
       stemsConfigs: [
         {
           rowAttributes: [],
@@ -321,7 +322,7 @@ describe('Pivot data converter', () => {
         },
       ],
     };
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
@@ -346,7 +347,7 @@ describe('Pivot data converter', () => {
   });
 
   it('should return by two values', () => {
-    const config: PivotConfig = {
+    const config: LmrPivotConfig = {
       stemsConfigs: [
         {
           rowAttributes: [],
@@ -370,7 +371,7 @@ describe('Pivot data converter', () => {
         },
       ],
     };
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
@@ -398,7 +399,7 @@ describe('Pivot data converter', () => {
   });
 
   it('should return by row and value', () => {
-    const config: PivotConfig = {
+    const config: LmrPivotConfig = {
       stemsConfigs: [
         {
           rowAttributes: [
@@ -417,7 +418,7 @@ describe('Pivot data converter', () => {
         },
       ],
     };
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([
       {
         title: 'abc',
@@ -455,7 +456,7 @@ describe('Pivot data converter', () => {
   });
 
   it('should return by column and value', () => {
-    const config: PivotConfig = {
+    const config: LmrPivotConfig = {
       stemsConfigs: [
         {
           rowAttributes: [],
@@ -474,7 +475,7 @@ describe('Pivot data converter', () => {
         },
       ],
     };
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
@@ -515,7 +516,7 @@ describe('Pivot data converter', () => {
   });
 
   it('should return by two rows, column and three values', () => {
-    const config: PivotConfig = {
+    const config: LmrPivotConfig = {
       stemsConfigs: [
         {
           rowAttributes: [
@@ -551,7 +552,7 @@ describe('Pivot data converter', () => {
         },
       ],
     };
-    const pivotData = dataConverter.transform(config, collections, linkTypes, data, query);
+    const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([
       {
         title: 'abc',

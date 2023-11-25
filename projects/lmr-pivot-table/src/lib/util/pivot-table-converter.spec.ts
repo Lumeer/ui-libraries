@@ -18,17 +18,19 @@
  */
 import {PercentageConstraint, PercentageConstraintConfig} from '@lumeer/data-filters';
 
-import {PivotData} from './pivot-data';
+import {LmrPivotData} from './lmr-pivot-data';
 import {PivotTableConverter} from './pivot-table-converter';
-import {COLOR_GRAY100, COLOR_GRAY200} from './pivot-constants';
+import {COLOR_GRAY100, COLOR_GRAY200} from './lmr-pivot-constants';
+import {LmrPivotStrings} from './lmr-pivot-config';
 
 describe('Pivot table converter', () => {
   const headerSummaryString = 'H';
   const summaryString = 'S';
-  const converter: PivotTableConverter = new PivotTableConverter(headerSummaryString, summaryString);
+  const strings: LmrPivotStrings = {headerSummaryString, summaryString}
+  const converter: PivotTableConverter = new PivotTableConverter();
 
   it('should return empty rows', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: [],
@@ -46,11 +48,11 @@ describe('Pivot table converter', () => {
         },
       ],
     };
-    expect(converter.transform(data)).toEqual([{cells: []}]);
+    expect(converter.createTables(data, strings)).toEqual([{cells: []}]);
   });
 
   it('should return table by only values', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: ['A', 'B', 'C'],
@@ -71,7 +73,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
     expect(pivotTable.cells.length).toEqual(2);
     expect(pivotTable.cells[0].length).toEqual(3);
     expect(pivotTable.cells[1].length).toEqual(3);
@@ -135,7 +137,7 @@ describe('Pivot table converter', () => {
   });
 
   it('should return table by only rows', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: [],
@@ -178,7 +180,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
     expect(pivotTable.cells.length).toEqual(10);
     expect(pivotTable.cells[0][0]).toEqual({
       value: 'A',
@@ -337,13 +339,13 @@ describe('Pivot table converter', () => {
     });
     expect(pivotTable.cells[9][1]).toEqual(undefined);
 
-    const dataWithoutSums: PivotData = {...data, data: [{...data.data[0], rowShowSums: [false, false]}]};
-    const pivotTableWithoutSums = converter.transform(dataWithoutSums)[0];
+    const dataWithoutSums: LmrPivotData = {...data, data: [{...data.data[0], rowShowSums: [false, false]}]};
+    const pivotTableWithoutSums = converter.createTables(dataWithoutSums, strings)[0];
     expect(pivotTableWithoutSums.cells.length).toEqual(6);
   });
 
   it('should return table by only columns', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: [],
@@ -384,7 +386,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
     expect(pivotTable.cells.length).toEqual(2);
     expect(pivotTable.cells[0].length).toEqual(9);
     expect(pivotTable.cells[0][0]).toEqual({
@@ -532,14 +534,14 @@ describe('Pivot table converter', () => {
     });
     expect(pivotTable.cells[1][8]).toEqual(undefined);
 
-    const dataWithoutSums: PivotData = {...data, data: [{...data.data[0], columnShowSums: [false, false]}]};
-    const pivotTableWithoutSums = converter.transform(dataWithoutSums)[0];
+    const dataWithoutSums: LmrPivotData = {...data, data: [{...data.data[0], columnShowSums: [false, false]}]};
+    const pivotTableWithoutSums = converter.createTables(dataWithoutSums, strings)[0];
     expect(pivotTableWithoutSums.cells.length).toEqual(2);
     expect(pivotTableWithoutSums.cells[0].length).toEqual(5);
   });
 
   it('should return table by row and values', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: ['X', 'Y'],
@@ -592,7 +594,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
     expect(pivotTable.cells.length).toEqual(11);
     expect(pivotTable.cells[0].length).toEqual(4);
     expect(pivotTable.cells[0][0]).toEqual({
@@ -647,7 +649,7 @@ describe('Pivot table converter', () => {
   });
 
   it('should return table by column and values percentage', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: ['X', 'Y'],
@@ -704,7 +706,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
 
     expect(pivotTable.cells[1][2].value).toEqual('10%');
     expect(pivotTable.cells[1][3].value).toEqual('20%');
@@ -726,7 +728,7 @@ describe('Pivot table converter', () => {
   });
 
   it('should return table by column and values', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: ['X', 'Y', 'Z'],
@@ -774,7 +776,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
     expect(pivotTable.cells[0][0]).toEqual({
       value: 'A',
       isHeader: true,
@@ -864,7 +866,7 @@ describe('Pivot table converter', () => {
   });
 
   it('should return table by rows and columns and values', () => {
-    const data: PivotData = {
+    const data: LmrPivotData = {
       data: [
         {
           valueTitles: ['V'],
@@ -926,7 +928,7 @@ describe('Pivot table converter', () => {
       ],
     };
 
-    const pivotTable = converter.transform(data)[0];
+    const pivotTable = converter.createTables(data, strings)[0];
     expect(pivotTable.cells[0][0]).toEqual({
       value: '',
       rowSpan: 1,

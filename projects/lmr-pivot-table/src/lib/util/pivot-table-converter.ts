@@ -36,10 +36,10 @@ import {
   uniqueValues,
 } from '@lumeer/utils';
 
-import {PivotData, PivotDataHeader, PivotStemData} from './pivot-data';
-import {PivotTable, PivotTableCell} from './pivot-table';
-import {PivotSort, PivotValueType} from './pivot-config';
-import {COLOR_GRAY100, COLOR_GRAY200, COLOR_GRAY300, COLOR_GRAY400, COLOR_GRAY500} from './pivot-constants';
+import {LmrPivotData, LmrPivotDataHeader, LmrPivotStemData} from './lmr-pivot-data';
+import {LmrPivotTable, LmrPivotTableCell} from './lmr-pivot-table';
+import {LmrPivotSort, LmrPivotStrings, LmrPivotValueType} from './lmr-pivot-config';
+import {COLOR_GRAY100, COLOR_GRAY200, COLOR_GRAY300, COLOR_GRAY400, COLOR_GRAY500} from './lmr-pivot-constants';
 
 interface HeaderGroupInfo {
   background: string;
@@ -67,7 +67,8 @@ export class PivotTableConverter {
 
   private readonly percentageConstraint = new PercentageConstraint({decimals: 2});
 
-  private data: PivotStemData;
+  private data: LmrPivotStemData;
+  private strings: LmrPivotStrings;
   private values: any[][];
   private dataResources: DataResource[][][];
   private constraintData: ConstraintData;
@@ -78,16 +79,12 @@ export class PivotTableConverter {
   private valueTypeInfo: ValueTypeInfo[];
   private nonStickyRowIndex: number;
 
-  constructor(
-    private headerSummaryString: string,
-    private summaryString: string
-  ) {}
-
-  public transform(pivotData: PivotData): PivotTable[] {
+  public createTables(pivotData: LmrPivotData, strings: LmrPivotStrings): LmrPivotTable[] {
     if (!pivotData) {
       return [{cells: []}];
     }
 
+    this.strings = strings;
     this.constraintData = pivotData.constraintData;
 
     return (pivotData.data || []).map(d => {
@@ -99,11 +96,11 @@ export class PivotTableConverter {
     });
   }
 
-  private dataAreEmpty(data: PivotStemData): boolean {
+  private dataAreEmpty(data: LmrPivotStemData): boolean {
     return (data.rowHeaders || []).length === 0 && (data.columnHeaders || []).length === 0;
   }
 
-  private updateData(data: PivotStemData) {
+  private updateData(data: LmrPivotStemData) {
     const numberOfSums = Math.max(1, (data.valueTitles || []).length);
     this.valueTypeInfo = getValuesTypeInfo(data.values, data.valueTypes, numberOfSums);
     this.data = preparePivotData(data, this.constraintData, this.valueTypeInfo);
@@ -144,7 +141,7 @@ export class PivotTableConverter {
     return this.data.columnShowSums;
   }
 
-  private transformData(): PivotTable {
+  private transformData(): LmrPivotTable {
     const cells = this.initCells();
     const rowGroups = this.fillCellsByRows(cells);
     const columnGroups = this.fillCellsByColumns(cells);
@@ -152,20 +149,20 @@ export class PivotTableConverter {
     return {cells};
   }
 
-  private fillCellsByRows(cells: PivotTableCell[][]): HeaderGroupInfo[] {
+  private fillCellsByRows(cells: LmrPivotTableCell[][]): HeaderGroupInfo[] {
     const rowGroups = [];
     this.iterateAndFillCellsByRows(cells, rowGroups, this.data.rowHeaders, this.columnLevels, this.rowShowSums, 0);
     return rowGroups;
   }
 
   private iterateAndFillCellsByRows(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     rowGroupsInfo: HeaderGroupInfo[],
-    headers: PivotDataHeader[],
+    headers: LmrPivotDataHeader[],
     startIndex: number,
     showSums: boolean[],
     level: number,
-    parentHeader?: PivotDataHeader
+    parentHeader?: LmrPivotDataHeader
   ) {
     let currentIndex = startIndex;
     for (const header of headers) {
@@ -201,7 +198,7 @@ export class PivotTableConverter {
 
     if (showSums[level]) {
       const background = this.getSummaryBackground(level);
-      const summary = level === 0 ? this.summaryString : this.headerSummaryString;
+      const summary = level === 0 ? this.strings.summaryString : this.strings.headerSummaryString;
       const columnIndex = Math.max(level - 1, 0);
       let colSpan = this.rowLevels - columnIndex;
       const stickyStart = this.isRowLevelSticky(columnIndex);
@@ -248,7 +245,7 @@ export class PivotTableConverter {
     }
   }
 
-  private getHeaderBackground(header: PivotDataHeader, level: number): string {
+  private getHeaderBackground(header: LmrPivotDataHeader, level: number): string {
     if (header?.color) {
       return shadeColor(header.color, this.getLevelOpacity(level));
     }
@@ -274,7 +271,7 @@ export class PivotTableConverter {
     return this.groupColors[index];
   }
 
-  private fillCellsForRow(cells: PivotTableCell[][], row: number) {
+  private fillCellsForRow(cells: LmrPivotTableCell[][], row: number) {
     const rowIndexInCells = this.rowsTransformationArray[row];
     if (isNotNullOrUndefined(rowIndexInCells)) {
       for (let column = 0; column < this.columnsTransformationArray.length; column++) {
@@ -303,12 +300,12 @@ export class PivotTableConverter {
 
   private formatValueByValueType(value: any, valueIndex: number): any {
     const valueType = (this.data.valueTypes || [])[valueIndex];
-    if (!valueType || valueType === PivotValueType.Default) {
+    if (!valueType || valueType === LmrPivotValueType.Default) {
       return this.formatValueByConstraint(value, valueIndex);
     }
 
     if (
-      [PivotValueType.AllPercentage, PivotValueType.ColumnPercentage, PivotValueType.RowPercentage].includes(valueType)
+      [LmrPivotValueType.AllPercentage, LmrPivotValueType.ColumnPercentage, LmrPivotValueType.RowPercentage].includes(valueType)
     ) {
       return this.formatValueByPercentage(value);
     }
@@ -320,20 +317,20 @@ export class PivotTableConverter {
     const valueIndex = columns[0] % this.data.valueTitles.length;
     const valueType = this.data.valueTypes && this.data.valueTypes[valueIndex];
     const valueTypeInfo = this.valueTypeInfo[valueIndex];
-    if (!valueTypeInfo || !valueType || valueType === PivotValueType.Default) {
+    if (!valueTypeInfo || !valueType || valueType === LmrPivotValueType.Default) {
       return this.formatValueByConstraint(value, valueIndex);
     }
 
-    if (valueType === PivotValueType.AllPercentage) {
+    if (valueType === LmrPivotValueType.AllPercentage) {
       return this.formatValueByPercentage(divideValues(value, valueTypeInfo.sum));
-    } else if (valueType === PivotValueType.ColumnPercentage) {
+    } else if (valueType === LmrPivotValueType.ColumnPercentage) {
       const columnsDividers = columns.reduce((dividers, column) => {
         dividers.push(valueTypeInfo.sumsColumns[column]);
         return dividers;
       }, []);
       const columnsDivider = aggregateDataValues(DataAggregationType.Sum, columnsDividers);
       return this.formatValueByPercentage(divideValues(value, columnsDivider));
-    } else if (valueType === PivotValueType.RowPercentage) {
+    } else if (valueType === LmrPivotValueType.RowPercentage) {
       const rowsDividers = rows.reduce((dividers, row) => {
         dividers.push(valueTypeInfo.sumsRows[row]);
         return dividers;
@@ -358,7 +355,7 @@ export class PivotTableConverter {
   }
 
   private fillCellsForGroupedRow(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     rows: number[],
     rowIndexInCells: number,
     background: string
@@ -401,7 +398,7 @@ export class PivotTableConverter {
     return {values, dataResources};
   }
 
-  private fillCellsByColumns(cells: PivotTableCell[][]): HeaderGroupInfo[] {
+  private fillCellsByColumns(cells: LmrPivotTableCell[][]): HeaderGroupInfo[] {
     const columnGroups = [];
     this.iterateAndFillCellsByColumns(
       cells,
@@ -415,13 +412,13 @@ export class PivotTableConverter {
   }
 
   private iterateAndFillCellsByColumns(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     columnGroupsInfo: HeaderGroupInfo[],
-    headers: PivotDataHeader[],
+    headers: LmrPivotDataHeader[],
     startIndex: number,
     showSums: boolean[],
     level: number,
-    parentHeader?: PivotDataHeader
+    parentHeader?: LmrPivotDataHeader
   ) {
     let currentIndex = startIndex;
     const numberOfSums = Math.max(1, this.data.valueTitles.length);
@@ -458,7 +455,7 @@ export class PivotTableConverter {
 
     if (showSums[level]) {
       const background = this.getSummaryBackground(level);
-      const summary = level === 0 ? this.summaryString : this.headerSummaryString;
+      const summary = level === 0 ? this.strings.summaryString : this.strings.headerSummaryString;
       const numberOfValues = this.data.valueTitles.length;
       const rowIndex = Math.max(level - 1, 0);
       const shouldAddValueHeaders = numberOfValues > 1;
@@ -508,7 +505,7 @@ export class PivotTableConverter {
   }
 
   private fillCellsForGroupedColumn(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     columns: number[],
     columnIndexInCells: number,
     background: string
@@ -548,7 +545,7 @@ export class PivotTableConverter {
     return isValueAggregation(aggregation) ? aggregation : DataAggregationType.Sum;
   }
 
-  private fillCellsForColumn(cells: PivotTableCell[][], column: number) {
+  private fillCellsForColumn(cells: LmrPivotTableCell[][], column: number) {
     const columnIndexInCells = this.columnsTransformationArray[column];
     if (isNotNullOrUndefined(columnIndexInCells)) {
       for (let row = 0; row < this.rowsTransformationArray.length; row++) {
@@ -582,7 +579,7 @@ export class PivotTableConverter {
   }
 
   private fillCellsByGroupIntersection(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     rowGroupsInfo: HeaderGroupInfo[],
     columnGroupsInfo: HeaderGroupInfo[]
   ) {
@@ -637,7 +634,7 @@ export class PivotTableConverter {
   }
 
   private fillRowWithColor(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     row: number,
     rowGroupInfo: HeaderGroupInfo,
     columnsCount: number
@@ -648,7 +645,7 @@ export class PivotTableConverter {
   }
 
   private fillColumnWithColor(
-    cells: PivotTableCell[][],
+    cells: LmrPivotTableCell[][],
     column: number,
     columnGroupInfo: HeaderGroupInfo,
     rowGroupsInfo: HeaderGroupInfo[],
@@ -662,11 +659,11 @@ export class PivotTableConverter {
     }
   }
 
-  private initCells(): PivotTableCell[][] {
+  private initCells(): LmrPivotTableCell[][] {
     const rows = this.getRowsCount() + this.columnLevels;
     const columns = this.getColumnsCount() + this.rowLevels;
 
-    const matrix: PivotTableCell[][] = [];
+    const matrix: LmrPivotTableCell[][] = [];
     for (let i = 0; i < rows; i++) {
       matrix[i] = [];
       for (let j = 0; j < columns; j++) {
@@ -722,10 +719,10 @@ export class PivotTableConverter {
 }
 
 function preparePivotData(
-  data: PivotStemData,
+  data: LmrPivotStemData,
   constraintData: ConstraintData,
   valueTypeInfo: ValueTypeInfo[]
-): PivotStemData {
+): LmrPivotStemData {
   const numberOfSums = Math.max(1, (data.valueTitles || []).length);
   const values = computeValuesByValueType(data.values, data.valueTypes, numberOfSums, valueTypeInfo);
   return sortPivotData({...data, values}, constraintData);
@@ -733,7 +730,7 @@ function preparePivotData(
 
 function computeValuesByValueType(
   values: any[][],
-  valueTypes: PivotValueType[],
+  valueTypes: LmrPivotValueType[],
   numValues: number,
   valueTypeInfo: ValueTypeInfo[]
 ): any[][] {
@@ -742,7 +739,7 @@ function computeValuesByValueType(
 
   for (let i = 0; i < numValues; i++) {
     const valueType = valueTypes && valueTypes[i];
-    if (!valueType || valueType === PivotValueType.Default) {
+    if (!valueType || valueType === LmrPivotValueType.Default) {
       continue;
     }
 
@@ -752,11 +749,11 @@ function computeValuesByValueType(
 
     for (const row of rowsIndexes) {
       for (const column of columnIndexes) {
-        if (valueType === PivotValueType.AllPercentage) {
+        if (valueType === LmrPivotValueType.AllPercentage) {
           modifiedValues[row][column] = divideValues(values[row][column], info.sum);
-        } else if (valueType === PivotValueType.RowPercentage) {
+        } else if (valueType === LmrPivotValueType.RowPercentage) {
           modifiedValues[row][column] = divideValues(values[row][column], info.sumsRows[row]);
-        } else if (valueType === PivotValueType.ColumnPercentage) {
+        } else if (valueType === LmrPivotValueType.ColumnPercentage) {
           modifiedValues[row][column] = divideValues(values[row][column], info.sumsColumns[column]);
         }
       }
@@ -766,7 +763,7 @@ function computeValuesByValueType(
   return modifiedValues;
 }
 
-function getValuesTypeInfo(values: any[][], valueTypes: PivotValueType[], numValues: number): ValueTypeInfo[] {
+function getValuesTypeInfo(values: any[][], valueTypes: LmrPivotValueType[], numValues: number): ValueTypeInfo[] {
   const valueTypeInfo = [];
   const rowsIndexes = [...Array(values.length).keys()];
 
@@ -781,15 +778,15 @@ function getValuesTypeInfo(values: any[][], valueTypes: PivotValueType[], numVal
   return valueTypeInfo;
 }
 
-function getValueTypeInfo(values: any[][], type: PivotValueType, rows: number[], columns: number[]): ValueTypeInfo {
+function getValueTypeInfo(values: any[][], type: LmrPivotValueType, rows: number[], columns: number[]): ValueTypeInfo {
   const containsDecimal = containsDecimalValue(values, rows, columns);
   const valueTypeInfo: ValueTypeInfo = {
     defaultConstraint: containsDecimal ? new NumberConstraint({decimals: 2}) : null,
   };
 
-  if (type === PivotValueType.AllPercentage) {
+  if (type === LmrPivotValueType.AllPercentage) {
     return {...valueTypeInfo, sum: getNumericValuesSummary(values, rows, columns)};
-  } else if (type === PivotValueType.RowPercentage) {
+  } else if (type === LmrPivotValueType.RowPercentage) {
     return {
       ...valueTypeInfo,
       sumsRows: rows.reduce((arr, row) => {
@@ -797,7 +794,7 @@ function getValueTypeInfo(values: any[][], type: PivotValueType, rows: number[],
         return arr;
       }, []),
     };
-  } else if (type === PivotValueType.ColumnPercentage) {
+  } else if (type === LmrPivotValueType.ColumnPercentage) {
     return {
       ...valueTypeInfo,
       sumsColumns: columns.reduce((arr, column) => {
@@ -833,7 +830,7 @@ function isValueDecimal(value: string): boolean {
 }
 
 function createTransformationMap(
-  headers: PivotDataHeader[],
+  headers: LmrPivotDataHeader[],
   showSums: boolean[],
   additionalNum: number,
   numberOfSums: number
@@ -844,7 +841,7 @@ function createTransformationMap(
 }
 
 function iterateThroughTransformationMap(
-  headers: PivotDataHeader[],
+  headers: LmrPivotDataHeader[],
   additionalNum: number,
   array: number[],
   level: number,
@@ -863,7 +860,7 @@ function iterateThroughTransformationMap(
   }
 }
 
-function getTargetIndexesForHeaders(headers: PivotDataHeader[]): number[] {
+function getTargetIndexesForHeaders(headers: LmrPivotDataHeader[]): number[] {
   const allRows = (headers || []).reduce((rows, header) => {
     rows.push(...getTargetIndexesForHeader(header));
     return rows;
@@ -871,7 +868,7 @@ function getTargetIndexesForHeaders(headers: PivotDataHeader[]): number[] {
   return uniqueValues<number>(allRows);
 }
 
-function getTargetIndexesForHeader(pivotDataHeader: PivotDataHeader): number[] {
+function getTargetIndexesForHeader(pivotDataHeader: LmrPivotDataHeader): number[] {
   if (pivotDataHeader.children) {
     return pivotDataHeader.children.reduce((rows, header) => {
       rows.push(...getTargetIndexesForHeader(header));
@@ -881,7 +878,7 @@ function getTargetIndexesForHeader(pivotDataHeader: PivotDataHeader): number[] {
   return [pivotDataHeader.targetIndex];
 }
 
-function getHeadersChildCount(headers: PivotDataHeader[], showSums: boolean[], numberOfSums = 1): number {
+function getHeadersChildCount(headers: LmrPivotDataHeader[], showSums: boolean[], numberOfSums = 1): number {
   return (headers || []).reduce(
     (sum, header) => sum + getHeaderChildCount(header, 0, showSums, numberOfSums),
     showSums[0] ? numberOfSums : 0
@@ -889,7 +886,7 @@ function getHeadersChildCount(headers: PivotDataHeader[], showSums: boolean[], n
 }
 
 function getHeaderChildCount(
-  pivotDataHeader: PivotDataHeader,
+  pivotDataHeader: LmrPivotDataHeader,
   level: number,
   showSums: boolean[],
   numberOfSums = 1,
@@ -905,7 +902,7 @@ function getHeaderChildCount(
 }
 
 function getDirectHeaderChildCount(
-  pivotDataHeader: PivotDataHeader,
+  pivotDataHeader: LmrPivotDataHeader,
   level: number,
   showSums: boolean[],
   numberOfSums = 1
@@ -919,7 +916,7 @@ function getDirectHeaderChildCount(
   return 1;
 }
 
-export function sortPivotData(data: PivotStemData, constraintData: ConstraintData): PivotStemData {
+export function sortPivotData(data: LmrPivotStemData, constraintData: ConstraintData): LmrPivotStemData {
   return {
     ...data,
     rowHeaders: sortPivotRowDataHeaders(data.rowHeaders, data.rowSorts, data, constraintData),
@@ -928,11 +925,11 @@ export function sortPivotData(data: PivotStemData, constraintData: ConstraintDat
 }
 
 function sortPivotRowDataHeaders(
-  rowHeaders: PivotDataHeader[],
-  rowSorts: PivotSort[],
-  pivotData: PivotStemData,
+  rowHeaders: LmrPivotDataHeader[],
+  rowSorts: LmrPivotSort[],
+  pivotData: LmrPivotStemData,
   constraintData: ConstraintData
-): PivotDataHeader[] {
+): LmrPivotDataHeader[] {
   return sortPivotDataHeadersRecursive(
     rowHeaders,
     0,
@@ -946,11 +943,11 @@ function sortPivotRowDataHeaders(
 }
 
 function sortPivotColumnDataHeaders(
-  columnHeaders: PivotDataHeader[],
-  columnSorts: PivotSort[],
-  pivotData: PivotStemData,
+  columnHeaders: LmrPivotDataHeader[],
+  columnSorts: LmrPivotSort[],
+  pivotData: LmrPivotStemData,
   constraintData: ConstraintData
-): PivotDataHeader[] {
+): LmrPivotDataHeader[] {
   return sortPivotDataHeadersRecursive(
     columnHeaders,
     0,
@@ -964,15 +961,15 @@ function sortPivotColumnDataHeaders(
 }
 
 function sortPivotDataHeadersRecursive(
-  headers: PivotDataHeader[],
+  headers: LmrPivotDataHeader[],
   index: number,
-  sorts: PivotSort[],
-  otherSideHeaders: PivotDataHeader[],
+  sorts: LmrPivotSort[],
+  otherSideHeaders: LmrPivotDataHeader[],
   values: any[][],
   valueTitles: string[],
   isRows: boolean,
   constraintData: ConstraintData
-): PivotDataHeader[] {
+): LmrPivotDataHeader[] {
   // we don't want to sort values headers
   if (!isRows && isValuesHeaders(headers, valueTitles)) {
     return headers;
@@ -1004,7 +1001,7 @@ function sortPivotDataHeadersRecursive(
     });
 }
 
-function getConstraintForSort(sort: PivotSort, headers: PivotDataHeader[]): Constraint {
+function getConstraintForSort(sort: LmrPivotSort, headers: LmrPivotDataHeader[]): Constraint {
   if ((sort?.list?.values || []).length > 0) {
     // sort is done by values in columns
     return new NumberConstraint({});
@@ -1012,7 +1009,7 @@ function getConstraintForSort(sort: PivotSort, headers: PivotDataHeader[]): Cons
   return ((headers || [])[0] && (headers || [])[0].constraint) || new UnknownConstraint();
 }
 
-function isValuesHeaders(headers: PivotDataHeader[], valueTitles: string[]): boolean {
+function isValuesHeaders(headers: LmrPivotDataHeader[], valueTitles: string[]): boolean {
   return (
     valueTitles.length > 1 &&
     (headers || []).every(
@@ -1022,9 +1019,9 @@ function isValuesHeaders(headers: PivotDataHeader[], valueTitles: string[]): boo
 }
 
 function createHeadersValuesMap(
-  headers: PivotDataHeader[],
-  sort: PivotSort,
-  otherSideHeaders: PivotDataHeader[],
+  headers: LmrPivotDataHeader[],
+  sort: LmrPivotSort,
+  otherSideHeaders: LmrPivotDataHeader[],
   values: any[][],
   valueTitles: string[],
   isRows: boolean
@@ -1059,8 +1056,8 @@ function getNumericValuesSummary(values: any[][], rows: number[], columns: numbe
 }
 
 function sortValueTargetIndexes(
-  sort: PivotSort,
-  otherSideHeaders: PivotDataHeader[],
+  sort: LmrPivotSort,
+  otherSideHeaders: LmrPivotDataHeader[],
   valueTitles: string[]
 ): number[] | null {
   if (sort && sort.list) {
@@ -1073,7 +1070,7 @@ function sortValueTargetIndexes(
       }
     }
 
-    let pivotHeader: PivotDataHeader = null;
+    let pivotHeader: LmrPivotDataHeader = null;
     let currentOtherSideHeaders = otherSideHeaders;
     for (const value of sort.list.values || []) {
       if (value.isSummary) {

@@ -34,12 +34,12 @@ import {
   dataAggregationConstraint, QueryStem, Collection, LinkType, DataResource, Query, AttributesResourceType, attributesResourcesAttributesMap,
 } from '@lumeer/data-filters';
 import {deepObjectsEquals, flattenMatrix, flattenValues, isArray, isNotNullOrUndefined, uniqueValues} from '@lumeer/utils';
-import {PivotAttribute, PivotConfig, PivotRowColumnAttribute, PivotSort, PivotStemConfig, PivotValueAttribute} from './pivot-config';
-import {PivotData, PivotDataHeader, PivotStemData} from './pivot-data';
+import {LmrPivotAttribute, LmrPivotConfig, LmrPivotRowColumnAttribute, LmrPivotSort, LmrPivotStemConfig, LmrPivotTransform, LmrPivotValueAttribute} from './lmr-pivot-config';
+import {LmrPivotData, LmrPivotDataHeader, LmrPivotStemData} from './lmr-pivot-data';
 import {pivotStemConfigIsEmpty} from './pivot-util';
 
 interface PivotMergeData {
-  configs: PivotStemConfig[];
+  configs: LmrPivotStemConfig[];
   stems: QueryStem[];
   stemsIndexes: number[];
   type: PivotConfigType;
@@ -61,10 +61,10 @@ interface PivotColors {
 interface PivotConfigData {
   rowShowSums: boolean[];
   rowSticky: boolean[];
-  rowSorts: PivotSort[];
+  rowSorts: LmrPivotSort[];
   columnShowSums: boolean[];
   columnSticky: boolean[];
-  columnSorts: PivotSort[];
+  columnSorts: LmrPivotSort[];
   rowAttributes: Attribute[];
   columnAttributes: Attribute[];
 }
@@ -75,15 +75,13 @@ export class PivotDataConverter {
   private collectionsAttributesMap: Record<string, Record<string, Attribute>>;
   private linkTypesAttributesMap: Record<string, Record<string, Attribute>>;
   private data: DocumentsAndLinksData;
-  private config: PivotStemConfig;
+  private config: LmrPivotConfig;
+  private transform: LmrPivotTransform;
   private constraintData?: ConstraintData;
 
   private dataAggregator: DataAggregator;
 
-  constructor(
-    private checkValidConstraintOverride: (c1: Constraint, c2: Constraint) => Constraint,
-    private translateAggregation: (type: DataAggregationType) => string
-  ) {
+  constructor() {
     this.dataAggregator = new DataAggregator((value, constraint, data, aggregatorAttribute) =>
       this.formatPivotValue(value, constraint, data, aggregatorAttribute)
     );
@@ -97,7 +95,7 @@ export class PivotDataConverter {
   ): any {
     const pivotConstraint = aggregatorAttribute.data && (aggregatorAttribute.data as Constraint);
     const overrideConstraint =
-      pivotConstraint && this.checkValidConstraintOverride(constraint, pivotConstraint);
+      pivotConstraint && this.transform?.checkValidConstraintOverride?.(constraint, pivotConstraint);
     const finalConstraint = overrideConstraint || constraint || new UnknownConstraint();
     return this.formatDataValue(finalConstraint.createDataValue(value, constraintData), finalConstraint);
   }
@@ -112,11 +110,15 @@ export class PivotDataConverter {
   }
 
   private updateData(
+    config: LmrPivotConfig,
+    transform: LmrPivotTransform,
     collections: Collection[],
     linkTypes: LinkType[],
     data: DocumentsAndLinksData,
     constraintData: ConstraintData
   ) {
+    this.config = config;
+    this.transform = transform;
     this.collections = collections;
     this.linkTypes = linkTypes;
     this.collectionsAttributesMap = attributesResourcesAttributesMap(collections);
@@ -125,15 +127,16 @@ export class PivotDataConverter {
     this.constraintData = constraintData;
   }
 
-  public transform(
-    config: PivotConfig,
+  public createData(
+    config: LmrPivotConfig,
+    transform: LmrPivotTransform,
     collections: Collection[],
     linkTypes: LinkType[],
     data: DocumentsAndLinksData,
     query: Query,
     constraintData?: ConstraintData
-  ): PivotData {
-    this.updateData(collections, linkTypes, data, constraintData);
+  ): LmrPivotData {
+    this.updateData(config, transform, collections, linkTypes, data, constraintData);
 
     const {stemsConfigs, stems} = this.filterEmptyConfigs(config, query);
 
@@ -143,7 +146,7 @@ export class PivotDataConverter {
     return {data: pivotData, constraintData, ableToMerge, mergeTables: config.mergeTables};
   }
 
-  private filterEmptyConfigs(config: PivotConfig, query: Query): {stemsConfigs: PivotStemConfig[]; stems: QueryStem[]} {
+  private filterEmptyConfigs(config: LmrPivotConfig, query: Query): {stemsConfigs: LmrPivotStemConfig[]; stems: QueryStem[]} {
     return (config.stemsConfigs || []).reduce(
       ({stemsConfigs, stems}, stemConfig, index) => {
         if (!pivotStemConfigIsEmpty(stemConfig)) {
@@ -160,7 +163,7 @@ export class PivotDataConverter {
 
   private createPivotMergeData(
     mergeTables: boolean,
-    stemsConfigs: PivotStemConfig[],
+    stemsConfigs: LmrPivotStemConfig[],
     stems: QueryStem[]
   ): PivotMergeData[] {
     return stemsConfigs.reduce((mergeData: PivotMergeData[], stemConfig, index) => {
@@ -180,7 +183,7 @@ export class PivotDataConverter {
     }, []);
   }
 
-  private mergePivotData(mergeData: PivotMergeData[]): PivotStemData[] {
+  private mergePivotData(mergeData: PivotMergeData[]): LmrPivotStemData[] {
     return mergeData.reduce((stemData, data) => {
       if (data.type === PivotConfigType.Values) {
         stemData.push(this.convertValueAttributes(data.configs, data.stems, data.stemsIndexes));
@@ -191,9 +194,9 @@ export class PivotDataConverter {
     }, []);
   }
 
-  private transformStems(configs: PivotStemConfig[], queryStems: QueryStem[], stemsIndexes: number[]): PivotStemData {
+  private transformStems(configs: LmrPivotStemConfig[], queryStems: QueryStem[], stemsIndexes: number[]): LmrPivotStemData {
     const pivotColors: PivotColors = {rows: [], columns: [], values: []};
-    const mergedValueAttributes: PivotValueAttribute[] = [];
+    const mergedValueAttributes: LmrPivotValueAttribute[] = [];
     let mergedAggregatedData: AggregatedMapData = null;
     let additionalData: PivotConfigData;
 
@@ -203,7 +206,6 @@ export class PivotDataConverter {
       const stemIndex = stemsIndexes[i];
       const stemData = this.data?.dataByStems?.[stemIndex];
 
-      this.config = config;
       this.dataAggregator.updateData(
         this.collections,
         stemData?.documents || [],
@@ -257,22 +259,22 @@ export class PivotDataConverter {
     }, []);
   }
 
-  private pivotAttributeConstraint(pivotAttribute: PivotAttribute): Constraint | undefined {
+  private pivotAttributeConstraint(pivotAttribute: LmrPivotAttribute): Constraint | undefined {
     const attribute = this.findAttributeByPivotAttribute(pivotAttribute);
     const constraint = attribute && attribute.constraint;
     const overrideConstraint =
       pivotAttribute.constraint &&
-      this.checkValidConstraintOverride(constraint, pivotAttribute.constraint);
+      this.transform?.checkValidConstraintOverride?.(constraint, pivotAttribute.constraint);
     return overrideConstraint || constraint;
   }
 
-  private pivotAttributeAttribute(pivotAttribute: PivotAttribute): Attribute | undefined {
+  private pivotAttributeAttribute(pivotAttribute: LmrPivotAttribute): Attribute | undefined {
     const attribute = this.findAttributeByPivotAttribute(pivotAttribute);
     if (attribute) {
       const constraint = attribute?.constraint;
       const overrideConstraint =
         pivotAttribute.constraint &&
-        this.checkValidConstraintOverride(constraint, pivotAttribute.constraint);
+        this.transform?.checkValidConstraintOverride?.(constraint, pivotAttribute.constraint);
       return {...attribute, constraint: overrideConstraint || constraint || new UnknownConstraint()};
     }
     return undefined;
@@ -307,26 +309,26 @@ export class PivotDataConverter {
     });
   }
 
-  private getAttributesColors(attributes: PivotAttribute[]): string[] {
+  private getAttributesColors(attributes: LmrPivotAttribute[]): string[] {
     return (attributes || []).map(attribute => {
       const resource = this.dataAggregator.getNextCollectionResource(attribute.resourceIndex);
       return resource && (<Collection>resource).color;
     });
   }
 
-  private convertPivotRowColumnAttribute(pivotAttribute: PivotRowColumnAttribute): DataAggregatorAttribute {
+  private convertPivotRowColumnAttribute(pivotAttribute: LmrPivotRowColumnAttribute): DataAggregatorAttribute {
     return {...this.convertPivotAttribute(pivotAttribute), data: pivotAttribute.constraint};
   }
 
-  private convertPivotAttribute(pivotAttribute: PivotAttribute): DataAggregatorAttribute {
+  private convertPivotAttribute(pivotAttribute: LmrPivotAttribute): DataAggregatorAttribute {
     return {resourceIndex: pivotAttribute.resourceIndex, attributeId: pivotAttribute.attributeId};
   }
 
   private convertValueAttributes(
-    configs: PivotStemConfig[],
+    configs: LmrPivotStemConfig[],
     stems: QueryStem[],
     stemsIndexes: number[]
-  ): PivotStemData {
+  ): LmrPivotStemData {
     const data = configs.reduce(
       (allData, config, index) => {
         const stem = stems[index];
@@ -395,7 +397,7 @@ export class PivotDataConverter {
     };
   }
 
-  private findDataResourcesByPivotAttribute(pivotAttribute: PivotAttribute): DataResource[] {
+  private findDataResourcesByPivotAttribute(pivotAttribute: LmrPivotAttribute): DataResource[] {
     if (pivotAttribute.resourceType === AttributesResourceType.Collection) {
       return (this.data?.uniqueDocuments || []).filter(document => document.collectionId === pivotAttribute.resourceId);
     } else if (pivotAttribute.resourceType === AttributesResourceType.LinkType) {
@@ -406,10 +408,10 @@ export class PivotDataConverter {
 
   private convertAggregatedData(
     aggregatedData: AggregatedMapData,
-    valueAttributes: PivotValueAttribute[],
+    valueAttributes: LmrPivotValueAttribute[],
     pivotColors: PivotColors,
     additionalData: PivotConfigData
-  ): PivotStemData {
+  ): LmrPivotStemData {
     const rowData = this.convertMapToPivotDataHeader(
       aggregatedData.map,
       aggregatedData.rowLevels,
@@ -463,8 +465,8 @@ export class PivotDataConverter {
     attributes: Attribute[],
     valueTitles?: string[],
     additionalNum: number = 0
-  ): {headers: PivotDataHeader[]; maxIndex: number} {
-    const headers: PivotDataHeader[] = [];
+  ): {headers: LmrPivotDataHeader[]; maxIndex: number} {
+    const headers: LmrPivotDataHeader[] = [];
     const data = {maxIndex: 0};
     if (levels === 0) {
       if ((valueTitles || []).length > 0) {
@@ -523,7 +525,7 @@ export class PivotDataConverter {
 
   private iterateThroughPivotDataHeader(
     currentMap: Record<string, any>,
-    header: PivotDataHeader,
+    header: LmrPivotDataHeader,
     headerIndex: number,
     level: number,
     maxLevels: number,
@@ -618,7 +620,7 @@ export class PivotDataConverter {
     return keys.reduce((sum, key) => sum + this.numChildrenRecursive(map[key], level + 1, maxLevels), 0);
   }
 
-  private createValueTitles(valueAttributes: PivotValueAttribute[]): {titles: string[]; constraints: Constraint[]} {
+  private createValueTitles(valueAttributes: LmrPivotValueAttribute[]): {titles: string[]; constraints: Constraint[]} {
     return (valueAttributes || []).reduce<{titles: string[]; constraints: Constraint[]}>(
       ({titles, constraints}, pivotAttribute) => {
         const attribute = this.findAttributeByPivotAttribute(pivotAttribute);
@@ -636,7 +638,7 @@ export class PivotDataConverter {
   }
 
   public createValueTitle(aggregation: DataAggregationType, attributeName: string): string {
-    const valueAggregationTitle = this.translateAggregation(aggregation);
+    const valueAggregationTitle = this.transform?.translateAggregation?.(aggregation) || aggregation.toString();
     return `${valueAggregationTitle} ${attributeName || ''}`.trim();
   }
 
@@ -655,9 +657,9 @@ export class PivotDataConverter {
   private fillValues(
     values: number[][],
     dataResources: DataResource[][][],
-    rowHeaders: PivotDataHeader[],
-    columnHeaders: PivotDataHeader[],
-    valueAttributes: PivotValueAttribute[],
+    rowHeaders: LmrPivotDataHeader[],
+    columnHeaders: LmrPivotDataHeader[],
+    valueAttributes: LmrPivotValueAttribute[],
     aggregatedData: AggregatedMapData
   ) {
     if (rowHeaders.length > 0) {
@@ -677,9 +679,9 @@ export class PivotDataConverter {
   private iterateThroughRowHeaders(
     values: number[][],
     dataResources: DataResource[][][],
-    rowHeaders: PivotDataHeader[],
-    columnHeaders: PivotDataHeader[],
-    valueAttributes: PivotValueAttribute[],
+    rowHeaders: LmrPivotDataHeader[],
+    columnHeaders: LmrPivotDataHeader[],
+    valueAttributes: LmrPivotValueAttribute[],
     currentMap: AggregatedDataMap
   ) {
     for (const rowHeader of rowHeaders) {
@@ -710,9 +712,9 @@ export class PivotDataConverter {
   private iterateThroughColumnHeaders(
     values: number[][],
     dataResources: DataResource[][][],
-    columnHeaders: PivotDataHeader[],
+    columnHeaders: LmrPivotDataHeader[],
     rowIndex: number,
-    valueAttributes: PivotValueAttribute[],
+    valueAttributes: LmrPivotValueAttribute[],
     currentMap: AggregatedDataMap | AggregatedDataValues[]
   ) {
     for (const columnHeader of columnHeaders) {
@@ -742,7 +744,7 @@ export class PivotDataConverter {
   }
 
   private aggregateValue(
-    valueAttribute: PivotValueAttribute,
+    valueAttribute: LmrPivotValueAttribute,
     aggregatedDataValues: AggregatedDataValues[]
   ): {value?: any; dataResources?: DataResource[]} {
     const resourceAggregatedDataValues = (aggregatedDataValues || []).filter(
@@ -764,7 +766,7 @@ export class PivotDataConverter {
     return {};
   }
 
-  private findAttributeByPivotAttribute(valueAttribute: PivotAttribute): Attribute | undefined {
+  private findAttributeByPivotAttribute(valueAttribute: LmrPivotAttribute): Attribute | undefined {
     if (valueAttribute.resourceType === AttributesResourceType.Collection) {
       return this.collectionsAttributesMap?.[valueAttribute.resourceId]?.[valueAttribute.attributeId];
     } else if (valueAttribute.resourceType === AttributesResourceType.LinkType) {
@@ -774,7 +776,7 @@ export class PivotDataConverter {
   }
 }
 
-function getPivotStemConfigType(stemConfig: PivotStemConfig): PivotConfigType {
+function getPivotStemConfigType(stemConfig: LmrPivotStemConfig): PivotConfigType {
   const rowLength = (stemConfig.rowAttributes || []).length;
   const columnLength = (stemConfig.columnAttributes || []).length;
 
@@ -788,7 +790,7 @@ function getPivotStemConfigType(stemConfig: PivotStemConfig): PivotConfigType {
   return PivotConfigType.Values;
 }
 
-function canMergeConfigsByType(type: PivotConfigType, c1: PivotStemConfig, c2: PivotStemConfig): boolean {
+function canMergeConfigsByType(type: PivotConfigType, c1: LmrPivotStemConfig, c2: LmrPivotStemConfig): boolean {
   if (type === PivotConfigType.Rows) {
     return (c1.rowAttributes || []).length === (c2.rowAttributes || []).length;
   } else if (type === PivotConfigType.Columns) {

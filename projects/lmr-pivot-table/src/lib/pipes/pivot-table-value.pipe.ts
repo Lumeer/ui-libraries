@@ -20,13 +20,13 @@ import {Pipe, PipeTransform} from '@angular/core';
 
 import {isNotNullOrUndefined} from '@lumeer/utils';
 
-import {PivotTableCell} from '../util/pivot-table';
+import {LmrPivotTableCell} from '../util/lmr-pivot-table';
 
 @Pipe({
   name: 'pivotTableCellHasValue',
 })
 export class PivotTableCellHasValuePipe implements PipeTransform {
-  public transform(cell: PivotTableCell): boolean {
+  public transform(cell: LmrPivotTableCell): boolean {
     return isNotNullOrUndefined(cell.value) && String(cell.value).trim() !== '';
   }
 }

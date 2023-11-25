@@ -1,6 +1,69 @@
-<pivot-tables *ngIf="pivotConfig"
-              [pivotData]="pivotData$ | async"
-              [constraintData]="constraintData"
-              [dataLoaded]="dataLoaded"
-              (cellClick)="cellClick.emit($event)">
-</pivot-tables>
+<ng-container *ngIf="{pivotTables: pivotTables$ | async, pivotData: pivotData$ | async} as data">
+  <ng-container *ngIf="data.pivotTables?.length && !(data.pivotData | pivotDataEmpty)">
+    <table *ngFor="let pivotTable of data.pivotTables; let first"
+           class="table table-without-padding table-borderless table-md"
+           [class.mt-4]="!first">
+      <tr *ngFor="let rowCells of pivotTable.cells; let rowIndex = index">
+
+        <ng-container *ngFor="let cell of rowCells; let cellIndex = index">
+          <td *ngIf="cell && {hasValue: cell | pivotTableCellHasValue} as cellData"
+              class="cell {{cell.constraint ? (cell.constraint.type | lowercase) : ''}} text-truncate"
+              [style.max-width.px]="300"
+              [class.sticky-start]="cell.stickyStart"
+              [class.sticky-top]="cell.stickyTop"
+              [rowSpan]="cell.rowSpan"
+              [colSpan]="cell.colSpan"
+              [style.top.px]="cell.stickyTop ? (rowIndex * 40) : undefined"
+              [style.left.px]="cell.stickyStart ? (cellIndex * 150) : undefined"
+              [ngClass]="cell.cssClass"
+              [style.background]="cell.background"
+              [style.color]="cell.background && (cell.background | contrastColor)">
+            <ng-container *ngIf="cell.summary">
+              <div class="d-flex align-items-center h-100">
+                <span class="summary" [class.me-2]="cellData.hasValue">{{cell.summary}}</span>
+                <ng-container *ngIf="cellData.hasValue">
+                  <ng-template #defaultTableCellTemplate>
+                  <span class="flex-grow-1 h-100 text-truncate d-inline-block">
+                    {{ cell.value }}
+                  </span>
+                  </ng-template>
+
+                  <ng-template
+                    [ngTemplateOutlet]="tableCellTemplate || defaultTableCellTemplate"
+                    [ngTemplateOutletContext]="{ value: cell.value, cell: cell }">
+                  </ng-template>
+                </ng-container>
+              </div>
+            </ng-container>
+            <ng-container *ngIf="!cell.summary">
+              <ng-container *ngIf="cellData.hasValue">
+                <ng-template #defaultTableCellTemplate>
+                  <span class="d-inline-block">
+                    {{ cell.value }}
+                  </span>
+                </ng-template>
+
+                <ng-template
+                  [ngTemplateOutlet]="tableCellTemplate || defaultTableCellTemplate"
+                  [ngTemplateOutletContext]="{ value: cell.value, cell: cell }">
+                </ng-template>
+              </ng-container>
+              <ng-container *ngIf="!cellData.hasValue">&nbsp;</ng-container>
+            </ng-container>
+          </td>
+        </ng-container>
+      </tr>
+    </table>
+  </ng-container>
+
+  <ng-container *ngIf="!data.pivotTables?.length || (data.pivotData | pivotDataEmpty)">
+    <ng-template #defaultEmptyTablesTemplate>
+      <div>&nbsp;</div>
+    </ng-template>
+
+    <ng-template
+      [ngTemplateOutlet]="emptyTablesTemplate || defaultEmptyTablesTemplate"
+      [ngTemplateOutletContext]="{  }">
+    </ng-template>
+  </ng-container>
+</ng-container>

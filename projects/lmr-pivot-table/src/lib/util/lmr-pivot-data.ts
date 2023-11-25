@@ -17,38 +17,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {Constraint, ConstraintData, DataAggregationType, DataResource} from '@lumeer/data-filters';
-import {PivotSort, PivotValueType} from './pivot-config';
+import {LmrPivotSort, LmrPivotValueType} from './lmr-pivot-config';
 
-export interface PivotData {
-  data: PivotStemData[];
+export interface LmrPivotData {
+  data: LmrPivotStemData[];
 
   constraintData?: ConstraintData;
   mergeTables?: boolean;
   ableToMerge?: boolean;
 }
 
-export interface PivotStemData {
-  columnHeaders: PivotDataHeader[];
-  rowHeaders: PivotDataHeader[];
+export interface LmrPivotStemData {
+  columnHeaders: LmrPivotDataHeader[];
+  rowHeaders: LmrPivotDataHeader[];
   valueTitles: string[];
   values: any[][];
   dataResources: DataResource[][][];
   valuesConstraints?: Constraint[];
-  valueTypes?: PivotValueType[];
+  valueTypes?: LmrPivotValueType[];
   valueAggregations?: DataAggregationType[];
 
   rowShowSums: boolean[];
   rowSticky: boolean[];
-  rowSorts?: PivotSort[];
+  rowSorts?: LmrPivotSort[];
   columnShowSums: boolean[];
   columnSticky: boolean[];
-  columnSorts?: PivotSort[];
+  columnSorts?: LmrPivotSort[];
   hasAdditionalColumnLevel?: boolean;
 }
 
-export interface PivotDataHeader {
+export interface LmrPivotDataHeader {
   title: string;
-  children?: PivotDataHeader[];
+  children?: LmrPivotDataHeader[];
   targetIndex?: number;
   color: string;
   isValueHeader: boolean;

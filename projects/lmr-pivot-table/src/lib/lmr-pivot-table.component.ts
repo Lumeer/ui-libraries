@@ -1,10 +1,12 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges} from '@angular/core';
-import {PivotConfig} from './util/pivot-config';
-import {Collection, ConstraintData, DataAggregationType, DocumentsAndLinksData, LinkType, Query} from '@lumeer/data-filters';
+import {ChangeDetectionStrategy, Component, ContentChild, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, TemplateRef} from '@angular/core';
+import {LmrPivotConfig, LmrPivotStrings, LmrPivotTransform} from './util/lmr-pivot-config';
+import {Collection, ConstraintData, DocumentsAndLinksData, LinkType, Query} from '@lumeer/data-filters';
 import {PivotDataConverter} from './util/pivot-data-converter';
-import {PivotData} from './util/pivot-data';
-import {asyncScheduler, BehaviorSubject, filter, map, Observable, throttleTime} from 'rxjs';
-import {PivotTableCell} from './util/pivot-table';
+import {LmrPivotData} from './util/lmr-pivot-data';
+import {asyncScheduler, BehaviorSubject, filter, map, Observable, tap, throttleTime} from 'rxjs';
+import {LmrPivotTable, LmrPivotTableCell} from './util/lmr-pivot-table';
+import {PivotTableConverter} from './util/pivot-table-converter';
+import {LmrEmptyTablesTemplateDirective, LmrTableCellTemplateDirective} from './directives/lmr-templates.directive';
 
 interface Data {
   collections: Collection[];
@@ -12,12 +14,14 @@ interface Data {
   data: DocumentsAndLinksData;
   query: Query;
   constraintData: ConstraintData;
-  config: PivotConfig;
+  config: LmrPivotConfig;
+  transform: LmrPivotTransform;
 }
 
 @Component({
   selector: 'lmr-pivot-table',
   templateUrl: 'lmr-pivot-table.component.html',
+  styleUrls: ['./lmr-pivot-table.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LmrPivotTableComponent implements OnInit, OnChanges {
@@ -38,42 +42,49 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   public constraintData: ConstraintData;
 
   @Input()
-  public pivotConfig: PivotConfig;
+  public config: LmrPivotConfig;
 
   @Input()
-  public dataLoaded: boolean;
+  public transform: LmrPivotTransform;
+
+  @Input()
+  public strings: LmrPivotStrings;
 
   @Output()
-  public cellClick = new EventEmitter<PivotTableCell>();
+  public cellClick = new EventEmitter<LmrPivotTableCell>();
 
-  private readonly pivotTransformer: PivotDataConverter;
+  @Output()
+  public pivotDataChange = new EventEmitter<LmrPivotData>();
+
+  @ContentChild(LmrEmptyTablesTemplateDirective, { read: TemplateRef }) emptyTablesTemplate: TemplateRef<any>;
+  @ContentChild(LmrTableCellTemplateDirective, { read: TemplateRef }) tableCellTemplate: TemplateRef<any>;
+
+  private readonly pivotTransformer = new PivotDataConverter();
+  private readonly pivotTableConverter: PivotTableConverter = new PivotTableConverter();
+
   private dataSubject = new BehaviorSubject<Data>(null);
 
-  public pivotData$: Observable<PivotData>;
-
-  constructor() {
-    // TODO constructor properties
-    this.pivotTransformer = new PivotDataConverter((c1, c2) => c1, type =>
-      this.createValueAggregationTitle(type)
-    );
-  }
-
-  private createValueAggregationTitle(aggregation: DataAggregationType): string {
-    return aggregation.toString()
-  }
+  public pivotData$: Observable<LmrPivotData>;
+  public pivotTables$: Observable<LmrPivotTable[]>;
 
   public ngOnInit() {
     const observable = this.dataSubject.pipe(filter(data => !!data));
 
     this.pivotData$ = observable.pipe(
       throttleTime(200, asyncScheduler, {trailing: true, leading: true}),
-      map(data => this.handleData(data))
+      map(data => this.handleData(data)),
+      tap(data => this.pivotDataChange.emit(data)),
+    );
+
+    this.pivotTables$ = this.pivotData$.pipe(
+      map(data => this.pivotTableConverter.createTables(data, this.strings))
     );
   }
 
-  private handleData(data: Data): PivotData {
-    return this.pivotTransformer.transform(
+  private handleData(data: Data): LmrPivotData {
+    return this.pivotTransformer.createData(
       data.config,
+      data.transform,
       data.collections,
       data.linkTypes,
       data.data,
@@ -84,7 +95,8 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
 
   public ngOnChanges(changes: SimpleChanges) {
     this.dataSubject.next({
-      config: this.pivotConfig,
+      config: this.config,
+      transform: this.transform,
       collections: this.collections,
       linkTypes: this.linkTypes,
       data: this.data,

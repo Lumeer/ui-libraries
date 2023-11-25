@@ -19,14 +19,14 @@
 
 import {cleanQueryAttribute, Query, QueryStem} from '@lumeer/data-filters';
 import {deepObjectsEquals, hex2rgba} from '@lumeer/utils';
-import {PivotAttribute, PivotConfig, PivotConfigVersion, PivotStemConfig} from './pivot-config';
-import {COLOR_LIGHT, COLOR_PRIMARY} from './pivot-constants';
+import {LmrPivotAttribute, LmrPivotConfig, LmrPivotConfigVersion, LmrPivotStemConfig} from './lmr-pivot-config';
+import {COLOR_LIGHT, COLOR_PRIMARY} from './lmr-pivot-constants';
 
-export function pivotAttributesAreSame(a1: PivotAttribute, a2: PivotAttribute): boolean {
+export function pivotAttributesAreSame(a1: LmrPivotAttribute, a2: LmrPivotAttribute): boolean {
   return deepObjectsEquals(cleanQueryAttribute(a1), cleanQueryAttribute(a2));
 }
 
-export function isPivotConfigChanged(viewConfig: PivotConfig, currentConfig: PivotConfig): boolean {
+export function isPivotConfigChanged(viewConfig: LmrPivotConfig, currentConfig: LmrPivotConfig): boolean {
   if (!!viewConfig.mergeTables !== !!currentConfig.mergeTables && (currentConfig.stemsConfigs || []).length > 1) {
     return true;
   }
@@ -34,7 +34,7 @@ export function isPivotConfigChanged(viewConfig: PivotConfig, currentConfig: Piv
   return pivotStemConfigsHasChanged(viewConfig.stemsConfigs || [], currentConfig.stemsConfigs || []);
 }
 
-function pivotStemConfigsHasChanged(s1: PivotStemConfig[], s2: PivotStemConfig[]): boolean {
+function pivotStemConfigsHasChanged(s1: LmrPivotStemConfig[], s2: LmrPivotStemConfig[]): boolean {
   if (s1.length !== s2.length) {
     return true;
   }
@@ -42,7 +42,7 @@ function pivotStemConfigsHasChanged(s1: PivotStemConfig[], s2: PivotStemConfig[]
   return s1.some((stemConfig, index) => pivotStemConfigHasChanged(stemConfig, s2[index]));
 }
 
-function pivotStemConfigHasChanged(s1: PivotStemConfig, s2: PivotStemConfig): boolean {
+function pivotStemConfigHasChanged(s1: LmrPivotStemConfig, s2: LmrPivotStemConfig): boolean {
   return (
     !deepObjectsEquals(s1.rowAttributes || [], s2.rowAttributes || []) ||
     !deepObjectsEquals(s1.columnAttributes || [], s2.columnAttributes || []) ||
@@ -50,21 +50,21 @@ function pivotStemConfigHasChanged(s1: PivotStemConfig, s2: PivotStemConfig): bo
   );
 }
 
-export function createDefaultPivotConfig(query: Query): PivotConfig {
+export function createDefaultPivotConfig(query: Query): LmrPivotConfig {
   const stems = (query && query.stems) || [];
   const stemsConfigs = stems.map(stem => createDefaultPivotStemConfig(stem));
-  return {version: PivotConfigVersion.V1, stemsConfigs: stemsConfigs, mergeTables: true};
+  return {version: LmrPivotConfigVersion.V1, stemsConfigs: stemsConfigs, mergeTables: true};
 }
 
-export function createDefaultPivotStemConfig(stem?: QueryStem): PivotStemConfig {
+export function createDefaultPivotStemConfig(stem?: QueryStem): LmrPivotStemConfig {
   return {stem, rowAttributes: [], columnAttributes: [], valueAttributes: []};
 }
 
-export function pivotConfigIsEmpty(config: PivotConfig): boolean {
+export function pivotConfigIsEmpty(config: LmrPivotConfig): boolean {
   return (config.stemsConfigs || []).every(stemConfig => pivotStemConfigIsEmpty(stemConfig));
 }
 
-export function pivotStemConfigIsEmpty(config: PivotStemConfig): boolean {
+export function pivotStemConfigIsEmpty(config: LmrPivotStemConfig): boolean {
   return (
     ((config && config.rowAttributes) || []).length === 0 &&
     ((config && config.columnAttributes) || []).length === 0 &&

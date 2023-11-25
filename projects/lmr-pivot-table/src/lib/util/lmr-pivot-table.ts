@@ -18,11 +18,11 @@
  */
 import {Constraint, DataResource} from '@lumeer/data-filters';
 
-export interface PivotTable {
-  cells: PivotTableCell[][];
+export interface LmrPivotTable {
+  cells: LmrPivotTableCell[][];
 }
 
-export interface PivotTableCell {
+export interface LmrPivotTableCell {
   value: any;
   dataResources?: DataResource[];
   constraint?: Constraint;
