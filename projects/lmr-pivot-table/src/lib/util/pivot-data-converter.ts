@@ -35,7 +35,7 @@ import {
 } from '@lumeer/data-filters';
 import {deepObjectsEquals, flattenMatrix, flattenValues, isArray, isNotNullOrUndefined, uniqueValues} from '@lumeer/utils';
 import {LmrPivotAttribute, LmrPivotConfig, LmrPivotRowColumnAttribute, LmrPivotSort, LmrPivotStemConfig, LmrPivotTransform, LmrPivotValueAttribute} from './lmr-pivot-config';
-import {LmrPivotData, LmrPivotDataHeader, LmrPivotStemData} from './lmr-pivot-data';
+import {LmrPivotData, LmrPivotDataHeader, LmrPivotHeaderAttribute, LmrPivotStemData} from './lmr-pivot-data';
 import {pivotStemConfigIsEmpty} from './pivot-util';
 
 interface PivotMergeData {
@@ -60,11 +60,13 @@ interface PivotColors {
 
 interface PivotConfigData {
   rowShowSums: boolean[];
+  rowShowHeaderAttributes: boolean[];
   rowSticky: boolean[];
   rowSorts: LmrPivotSort[];
   columnShowSums: boolean[];
   columnSticky: boolean[];
   columnSorts: LmrPivotSort[];
+  columnShowHeaderAttributes: boolean[];
   rowAttributes: Attribute[];
   columnAttributes: Attribute[];
 }
@@ -77,7 +79,7 @@ export class PivotDataConverter {
   private data: DocumentsAndLinksData;
   private config: LmrPivotConfig;
   private transform: LmrPivotTransform;
-  private constraintData?: ConstraintData;
+  private constraintData: ConstraintData;
 
   private dataAggregator: DataAggregator;
 
@@ -97,7 +99,8 @@ export class PivotDataConverter {
     const overrideConstraint =
       pivotConstraint && this.transform?.checkValidConstraintOverride?.(constraint, pivotConstraint);
     const finalConstraint = overrideConstraint || constraint || new UnknownConstraint();
-    return this.formatDataValue(finalConstraint.createDataValue(value, constraintData), finalConstraint);
+    const serializedValue = (constraint || new UnknownConstraint()).createDataValue(value, constraintData).serialize()
+    return this.formatDataValue(finalConstraint.createDataValue(serializedValue, constraintData), finalConstraint);
   }
 
   private formatDataValue(dataValue: DataValue, constraint: Constraint): any {
@@ -237,10 +240,12 @@ export class PivotDataConverter {
       if (!additionalData) {
         additionalData = {
           rowShowSums: (config.rowAttributes || []).map(attr => attr.showSums),
+          rowShowHeaderAttributes: (config.rowAttributes || []).map(attr => attr.showHeader),
           rowSticky: this.mapStickyValues((config.rowAttributes || []).map(attr => !!attr.sticky)),
           rowSorts: (config.rowAttributes || []).map(attr => attr.sort),
           rowAttributes: (config.rowAttributes || []).map(attr => this.pivotAttributeAttribute(attr)),
           columnShowSums: (config.columnAttributes || []).map(attr => attr.showSums),
+          columnShowHeaderAttributes: (config.columnAttributes || []).map(attr => false),
           columnSticky: this.mapStickyValues((config.columnAttributes || []).map(attr => !!attr.sticky)),
           columnSorts: (config.columnAttributes || []).map(attr => attr.sort),
           columnAttributes: (config.columnAttributes || []).map(attr => this.pivotAttributeAttribute(attr)),
@@ -378,7 +383,9 @@ export class PivotDataConverter {
 
     return {
       columnHeaders: data.headers,
+      columnHeaderAttributes: [],
       rowHeaders: [],
+      rowHeaderAttributes: [],
       valueTitles: data.titles,
       values: [data.values],
       dataResources: [data.dataResources],
@@ -419,6 +426,8 @@ export class PivotDataConverter {
       pivotColors.values,
       additionalData.rowAttributes
     );
+    const rowHeaderAttributes: LmrPivotHeaderAttribute[] = (additionalData.rowAttributes || [])
+      .map((attribute, index) => additionalData.rowShowHeaderAttributes?.[index] ? ({title: attribute.name, color: pivotColors.rows?.[index]}) : undefined)
 
     const {titles: valueTitles, constraints: valuesConstraints} = this.createValueTitles(valueAttributes);
     const columnData = this.convertMapToPivotDataHeader(
@@ -429,6 +438,8 @@ export class PivotDataConverter {
       additionalData.columnAttributes,
       valueTitles
     );
+    const columnHeaderAttributes: LmrPivotHeaderAttribute[] = (additionalData.columnAttributes || [])
+      .map((attribute, index) =>  additionalData.columnShowHeaderAttributes?.[index] ? ({title: attribute.name, color: pivotColors.columns?.[index]}) : undefined)
 
     const values = this.initMatrix<number>(rowData.maxIndex + 1, columnData.maxIndex + 1);
     const dataResources = this.initMatrix<DataResource[]>(rowData.maxIndex + 1, columnData.maxIndex + 1);
@@ -443,7 +454,9 @@ export class PivotDataConverter {
       (aggregatedData.columnLevels > 0 && valueTitles.length > 1);
     return {
       rowHeaders: rowData.headers,
+      rowHeaderAttributes,
       columnHeaders: columnData.headers,
+      columnHeaderAttributes,
       valueTitles,
       values,
       dataResources,

@@ -29,7 +29,9 @@ export interface LmrPivotData {
 
 export interface LmrPivotStemData {
   columnHeaders: LmrPivotDataHeader[];
+  columnHeaderAttributes: LmrPivotHeaderAttribute[];
   rowHeaders: LmrPivotDataHeader[];
+  rowHeaderAttributes: LmrPivotHeaderAttribute[];
   valueTitles: string[];
   values: any[][];
   dataResources: DataResource[][][];
@@ -44,6 +46,11 @@ export interface LmrPivotStemData {
   columnSticky: boolean[];
   columnSorts?: LmrPivotSort[];
   hasAdditionalColumnLevel?: boolean;
+}
+
+export interface LmrPivotHeaderAttribute {
+  title: string;
+  color: string;
 }
 
 export interface LmrPivotDataHeader {

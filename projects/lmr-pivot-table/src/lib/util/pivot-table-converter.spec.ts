@@ -35,8 +35,10 @@ describe('Pivot table converter', () => {
         {
           valueTitles: [],
           rowHeaders: [],
+          rowHeaderAttributes: [],
           rowSticky: [],
           columnHeaders: [],
+          columnHeaderAttributes: [],
           values: [],
           dataResources: [],
           rowSorts: [],
@@ -57,12 +59,14 @@ describe('Pivot table converter', () => {
         {
           valueTitles: ['A', 'B', 'C'],
           rowHeaders: [],
+          rowHeaderAttributes: [],
           rowSticky: [],
           columnHeaders: [
             {title: 'A', targetIndex: 0, color: undefined, isValueHeader: false},
             {title: 'B', targetIndex: 1, color: undefined, isValueHeader: false},
             {title: 'C', targetIndex: 2, color: undefined, isValueHeader: false},
           ],
+          columnHeaderAttributes: [],
           values: [[10, 20, 30]],
           dataResources: [],
           rowShowSums: [],
@@ -169,8 +173,10 @@ describe('Pivot table converter', () => {
               isValueHeader: false,
             },
           ],
+          rowHeaderAttributes: [],
           columnHeaders: [],
           columnSticky: [],
+          columnHeaderAttributes: [],
           values: [],
           dataResources: [],
           rowShowSums: [true, true],
@@ -351,6 +357,7 @@ describe('Pivot table converter', () => {
           valueTitles: [],
           rowHeaders: [],
           rowSticky: [],
+          rowHeaderAttributes: [],
           columnHeaders: [
             {
               title: 'X',
@@ -377,6 +384,7 @@ describe('Pivot table converter', () => {
               isValueHeader: false,
             },
           ],
+          columnHeaderAttributes: [],
           values: [],
           dataResources: [],
           columnSticky: [],
@@ -573,10 +581,14 @@ describe('Pivot table converter', () => {
               isValueHeader: false,
             },
           ],
+          rowHeaderAttributes: [
+            {title: 'H1', color: '#ff0000'}
+          ],
           columnHeaders: [
             {title: 'X', targetIndex: 0, color: undefined, isValueHeader: false},
             {title: 'Y', targetIndex: 1, color: undefined, isValueHeader: false},
           ],
+          columnHeaderAttributes: [],
           values: [
             [1, 2],
             [2, null],
@@ -598,13 +610,13 @@ describe('Pivot table converter', () => {
     expect(pivotTable.cells.length).toEqual(11);
     expect(pivotTable.cells[0].length).toEqual(4);
     expect(pivotTable.cells[0][0]).toEqual({
-      value: '',
+      value: 'H1',
       rowSpan: 1,
       colSpan: 1,
-      isHeader: false,
-      cssClass: PivotTableConverter.emptyClass,
-      stickyStart: undefined,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowAttributeHeaderClass,
       stickyTop: undefined,
+      background: '#ff0000',
     });
     expect(pivotTable.cells[0][2]).toEqual({
       value: 'X',
@@ -680,6 +692,9 @@ describe('Pivot table converter', () => {
               isValueHeader: false,
             },
           ],
+          rowHeaderAttributes: [{
+            title: 'H1', color: '#ff0000',
+          }],
           columnHeaders: [
             {title: 'X', targetIndex: 0, color: undefined, isValueHeader: false},
             {title: 'Y', targetIndex: 1, color: undefined, isValueHeader: false},
@@ -700,6 +715,7 @@ describe('Pivot table converter', () => {
           rowShowSums: [true, true],
           rowSticky: [],
           columnShowSums: [],
+          columnHeaderAttributes: [],
           columnSticky: [],
           hasAdditionalColumnLevel: true,
         },
@@ -708,6 +724,7 @@ describe('Pivot table converter', () => {
 
     const pivotTable = converter.createTables(data, strings)[0];
 
+    expect(pivotTable.cells[0][0].value).toEqual('H1');
     expect(pivotTable.cells[1][2].value).toEqual('10%');
     expect(pivotTable.cells[1][3].value).toEqual('20%');
     expect(pivotTable.cells[2][2].value).toEqual('20%');
@@ -733,6 +750,7 @@ describe('Pivot table converter', () => {
         {
           valueTitles: ['X', 'Y', 'Z'],
           rowHeaders: [],
+          rowHeaderAttributes: [],
           columnHeaders: [
             {
               title: 'A',
@@ -766,6 +784,7 @@ describe('Pivot table converter', () => {
             },
           ],
           values: [[1, 5, 6, 2, null, 1, 4, 5, null]],
+          columnHeaderAttributes: [],
           dataResources: [],
           rowSticky: [],
           rowShowSums: [],
@@ -891,6 +910,9 @@ describe('Pivot table converter', () => {
               isValueHeader: false,
             },
           ],
+          rowHeaderAttributes: [undefined, {
+            title: 'H2', color: '#ff0000',
+          }],
           columnHeaders: [
             {
               title: 'X',
@@ -919,6 +941,7 @@ describe('Pivot table converter', () => {
             [2, 4, 7, 1, 3],
             [1, 0, 1, 1, 2],
           ],
+          columnHeaderAttributes: [],
           dataResources: [],
           rowSticky: [],
           rowShowSums: [false, true],
@@ -937,6 +960,15 @@ describe('Pivot table converter', () => {
       cssClass: PivotTableConverter.emptyClass,
       stickyTop: undefined,
       stickyStart: undefined,
+    });
+    expect(pivotTable.cells[0][1]).toEqual({
+      value: 'H2',
+      rowSpan: 1,
+      colSpan: 2,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowAttributeHeaderClass,
+      stickyTop: undefined,
+      background: '#ff0000',
     });
 
     expect(pivotTable.cells[5][0]).toEqual({

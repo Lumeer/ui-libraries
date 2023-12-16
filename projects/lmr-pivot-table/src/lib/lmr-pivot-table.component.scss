@@ -4,11 +4,14 @@
 }
 
 .pivot-data-cell,
-.pivot-data-group-cell {
+.pivot-data-group-cell,
+.pivot-column-header-cell,
+.pivot-column-group-header-cell {
   text-align: right;
 }
 
 .pivot-column-header-cell,
+.pivot-row-attribute-header-cell,
 .pivot-row-header-cell,
 .pivot-data-group-cell,
 .pivot-row-group-header-cell,
@@ -30,6 +33,7 @@
 }
 
 .pivot-column-header-cell,
+.pivot-row-attribute-header-cell,
 .pivot-column-group-header-cell,
 .pivot-empty-cell {
   &.sticky-top {

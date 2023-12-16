@@ -19,21 +19,24 @@
               [style.background]="cell.background"
               [style.color]="cell.background && (cell.background | contrastColor)">
             <ng-container *ngIf="cell.summary">
-              <div class="d-flex align-items-center h-100">
-                <span class="summary" [class.me-2]="cellData.hasValue">{{cell.summary}}</span>
-                <ng-container *ngIf="cellData.hasValue">
+              <ng-container *ngIf="cellData.hasValue">
+                <div class="d-flex align-items-center h-100">
+                  <span class="summary me-2">{{cell.summary}}</span>
                   <ng-template #defaultTableCellTemplate>
-                  <span class="flex-grow-1 h-100 text-truncate d-inline-block">
-                    {{ cell.value }}
-                  </span>
+                    <span class="flex-grow-1 h-100 text-truncate d-inline-block">
+                      {{ cell.value }}
+                    </span>
                   </ng-template>
 
                   <ng-template
                     [ngTemplateOutlet]="tableCellTemplate || defaultTableCellTemplate"
                     [ngTemplateOutletContext]="{ value: cell.value, cell: cell }">
                   </ng-template>
-                </ng-container>
-              </div>
+                </div>
+              </ng-container>
+              <ng-container *ngIf="!cellData.hasValue">
+                <span class="d-inline-block summary">{{cell.summary}}</span>
+              </ng-container>
             </ng-container>
             <ng-container *ngIf="!cell.summary">
               <ng-container *ngIf="cellData.hasValue">

@@ -35,7 +35,9 @@ export interface LmrPivotRowColumnAttribute extends LmrPivotAttribute {
   sort?: LmrPivotSort;
 }
 
-export interface LmrPivotRowAttribute extends LmrPivotRowColumnAttribute {}
+export interface LmrPivotRowAttribute extends LmrPivotRowColumnAttribute {
+  showHeader?: boolean;
+}
 
 export interface LmrPivotColumnAttribute extends LmrPivotRowColumnAttribute {}
 

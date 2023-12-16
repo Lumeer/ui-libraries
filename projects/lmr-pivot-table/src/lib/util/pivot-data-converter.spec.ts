@@ -271,7 +271,7 @@ describe('Pivot data converter', () => {
       stemsConfigs: [
         {
           rowAttributes: [
-            {resourceId: 'C2', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 2},
+            {resourceId: 'C2', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 2, showHeader: true},
           ],
           columnAttributes: [],
           valueAttributes: [],
@@ -305,7 +305,14 @@ describe('Pivot data converter', () => {
         attributeName: collections[1].attributes![0].name,
       },
     ]);
+    expect(pivotData.data[0].rowHeaderAttributes).toEqual([
+      {
+        title: 'Bbb',
+        color: undefined,
+      }
+    ]);
     expect(pivotData.data[0].columnHeaders).toEqual([]);
+    expect(pivotData.data[0].columnHeaderAttributes).toEqual([]);
     expect(pivotData.data[0].values).toEqual([[undefined], [undefined], [undefined]]);
     expect(pivotData.data[0].dataResources).toEqual([[undefined], [undefined], [undefined]]);
   });
@@ -324,6 +331,7 @@ describe('Pivot data converter', () => {
     };
     const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([]);
+    expect(pivotData.data[0].rowHeaderAttributes).toEqual([]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
         title: 'xyz',
@@ -342,6 +350,7 @@ describe('Pivot data converter', () => {
         attributeName: collections[2].attributes![0].name,
       },
     ]);
+    expect(pivotData.data[0].columnHeaderAttributes).toEqual([undefined]);
     expect(pivotData.data[0].values).toEqual([[undefined, undefined]]);
     expect(pivotData.data[0].dataResources).toEqual([[undefined, undefined]]);
   });
@@ -373,6 +382,7 @@ describe('Pivot data converter', () => {
     };
     const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([]);
+    expect(pivotData.data[0].rowHeaderAttributes).toEqual([]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
         title: dataConverter.createValueTitle(DataAggregationType.Sum, 'Ddd'),
@@ -387,6 +397,7 @@ describe('Pivot data converter', () => {
         isValueHeader: true,
       },
     ]);
+    expect(pivotData.data[0].columnHeaderAttributes).toEqual([]);
     expect(pivotData.data[0].values).toEqual([[46, -10]]);
     expect(pivotData.data[0].dataResources[0][0]).toHaveSize(9);
     expect(pivotData.data[0].dataResources[0][0].map((d: DataResource) => d.id)).toEqual(
@@ -403,7 +414,7 @@ describe('Pivot data converter', () => {
       stemsConfigs: [
         {
           rowAttributes: [
-            {resourceId: 'C1', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 0},
+            {resourceId: 'C1', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 0, showHeader: true},
           ],
           columnAttributes: [],
           valueAttributes: [
@@ -437,6 +448,12 @@ describe('Pivot data converter', () => {
         attributeName: collections[0].attributes![0].name,
       },
     ]);
+    expect(pivotData.data[0].rowHeaderAttributes).toEqual([
+      {
+        title: 'Aaa',
+        color: undefined,
+      }
+    ]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
         title: dataConverter.createValueTitle(DataAggregationType.Sum, 'Ddd'),
@@ -445,7 +462,7 @@ describe('Pivot data converter', () => {
         isValueHeader: true,
       },
     ]);
-
+    expect(pivotData.data[0].columnHeaderAttributes).toEqual([]);
     expect(pivotData.data[0].values).toEqual([[37], [31]]);
     expect(pivotData.data[0].dataResources[0][0].map((d: DataResource) => d.id)).toEqual(
       jasmine.arrayContaining(['D41', 'D41', 'D42', 'D43', 'D43', 'D44', 'D43', 'D44', 'D43', 'D44', 'D45', 'D46'])
@@ -477,6 +494,7 @@ describe('Pivot data converter', () => {
     };
     const pivotData = dataConverter.createData(config, transform, collections, linkTypes, data, query);
     expect(pivotData.data[0].rowHeaders).toEqual([]);
+    expect(pivotData.data[0].rowHeaderAttributes).toEqual([]);
     expect(pivotData.data[0].columnHeaders).toEqual([
       {
         title: 'a',
@@ -503,6 +521,7 @@ describe('Pivot data converter', () => {
         attributeName: collections[1].attributes![0].name,
       },
     ]);
+    expect(pivotData.data[0].columnHeaderAttributes).toEqual([undefined]);
     expect(pivotData.data[0].values).toEqual([[-4, 9, -13]]);
     expect(pivotData.data[0].dataResources[0][0].map((d: DataResource) => d.id)).toEqual(
       jasmine.arrayContaining(['D41', 'D43', 'D44'])
@@ -521,7 +540,7 @@ describe('Pivot data converter', () => {
         {
           rowAttributes: [
             {resourceId: 'C1', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 0},
-            {resourceId: 'C2', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 2},
+            {resourceId: 'C2', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 2, showHeader: true},
           ],
           columnAttributes: [
             {resourceId: 'C3', resourceType: AttributesResourceType.Collection, attributeId: 'a1', resourceIndex: 4},
@@ -605,6 +624,13 @@ describe('Pivot data converter', () => {
         attributeName: collections[0].attributes![0].name,
       },
     ]);
+    expect(pivotData.data[0].rowHeaderAttributes).toEqual([
+      undefined,
+      {
+        title: 'Bbb',
+        color: undefined,
+      }
+    ]);
     const valueTitles = [
       dataConverter.createValueTitle(DataAggregationType.Sum, 'Ddd'),
       dataConverter.createValueTitle(DataAggregationType.Max, 'Ddd'),
@@ -636,6 +662,7 @@ describe('Pivot data converter', () => {
         attributeName: collections[2].attributes![0].name,
       },
     ]);
+    expect(pivotData.data[0].columnHeaderAttributes).toEqual([undefined]);
     expect(pivotData.data[0].values).toEqual([
       [2, 2, 1, 7, 6, 2],
       [6, 4, 2, 6, 6, 1],

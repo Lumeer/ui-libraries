@@ -60,6 +60,7 @@ export class PivotTableConverter {
   public static readonly groupDataClass = 'pivot-data-group-cell';
   public static readonly rowHeaderClass = 'pivot-row-header-cell';
   public static readonly rowGroupHeaderClass = 'pivot-row-group-header-cell';
+  public static readonly rowAttributeHeaderClass = 'pivot-row-attribute-header-cell';
   public static readonly columnHeaderClass = 'pivot-column-header-cell';
   public static readonly columnGroupHeaderClass = 'pivot-column-group-header-cell';
 
@@ -78,6 +79,7 @@ export class PivotTableConverter {
   private columnsTransformationArray: number[];
   private valueTypeInfo: ValueTypeInfo[];
   private nonStickyRowIndex: number;
+  private nonStickyColumnIndex: number;
 
   public createTables(pivotData: LmrPivotData, strings: LmrPivotStrings): LmrPivotTable[] {
     if (!pivotData) {
@@ -104,11 +106,14 @@ export class PivotTableConverter {
     const numberOfSums = Math.max(1, (data.valueTitles || []).length);
     this.valueTypeInfo = getValuesTypeInfo(data.values, data.valueTypes, numberOfSums);
     this.data = preparePivotData(data, this.constraintData, this.valueTypeInfo);
-    this.nonStickyRowIndex = this.data.rowSticky?.findIndex(sticky => !sticky) || 0;
     this.values = data.values || [];
     this.dataResources = data.dataResources || [];
     this.rowLevels = (data.rowShowSums || []).length;
     this.columnLevels = (data.columnShowSums || []).length + (data.hasAdditionalColumnLevel ? 1 : 0);
+    const rowAllSticky = this.data.rowSticky?.length && this.data.rowSticky.every(sticky => !!sticky)
+    this.nonStickyRowIndex = Math.max(rowAllSticky ? this.rowLevels : (this.data.rowSticky?.findIndex(sticky => !sticky) || 0), 0);
+    const columnAllSticky = this.data.columnSticky?.length && this.data.columnSticky.every(sticky => !!sticky)
+    this.nonStickyColumnIndex = Math.max(columnAllSticky ? this.columnLevels : (this.data.columnSticky?.findIndex(sticky => !sticky) || 0), 0);
     const hasValue = (data.valueTitles || []).length > 0;
     if ((this.data.rowHeaders || []).length > 0) {
       this.rowsTransformationArray = createTransformationMap(
@@ -198,13 +203,13 @@ export class PivotTableConverter {
 
     if (showSums[level]) {
       const background = this.getSummaryBackground(level);
-      const summary = level === 0 ? this.strings.summaryString : this.strings.headerSummaryString;
+      const summary = level === 0 ? this.strings?.summaryString || '' : this.strings?.headerSummaryString || '';
       const columnIndex = Math.max(level - 1, 0);
       let colSpan = this.rowLevels - columnIndex;
       const stickyStart = this.isRowLevelSticky(columnIndex);
 
       // split row group header cell because of correct sticky scroll
-      if (stickyStart && this.nonStickyRowIndex > 0 && colSpan > 1) {
+      if (stickyStart && this.nonStickyRowIndex > 0 && this.nonStickyRowIndex < this.rowLevels && colSpan > 1) {
         const newColspan = this.nonStickyRowIndex - columnIndex;
 
         cells[currentIndex][this.nonStickyRowIndex] = {
@@ -245,7 +250,7 @@ export class PivotTableConverter {
     }
   }
 
-  private getHeaderBackground(header: LmrPivotDataHeader, level: number): string {
+  private getHeaderBackground(header: { color: string }, level: number): string {
     if (header?.color) {
       return shadeColor(header.color, this.getLevelOpacity(level));
     }
@@ -381,7 +386,7 @@ export class PivotTableConverter {
   private getGroupedValuesForRowsAndCols(
     rows: number[],
     columns: number[]
-  ): {values: any[]; dataResources: DataResource[]} {
+  ): { values: any[]; dataResources: DataResource[] } {
     const values = [];
     const dataResources = [];
     for (const row of rows) {
@@ -455,7 +460,7 @@ export class PivotTableConverter {
 
     if (showSums[level]) {
       const background = this.getSummaryBackground(level);
-      const summary = level === 0 ? this.strings.summaryString : this.strings.headerSummaryString;
+      const summary = level === 0 ? this.strings?.summaryString || '' : this.strings?.headerSummaryString || '';
       const numberOfValues = this.data.valueTitles.length;
       const rowIndex = Math.max(level - 1, 0);
       const shouldAddValueHeaders = numberOfValues > 1;
@@ -623,7 +628,7 @@ export class PivotTableConverter {
   private getValuesIndexesFromCellsIndexes(
     rows: number[],
     columns: number[]
-  ): {rowsIndexes: number[]; columnsIndexes: number[]} {
+  ): { rowsIndexes: number[]; columnsIndexes: number[] } {
     const rowsIndexes = rows
       .map(row => this.rowsTransformationArray.findIndex(tRow => tRow === row))
       .filter(index => index >= 0);
@@ -684,17 +689,43 @@ export class PivotTableConverter {
     }
 
     if (this.rowLevels > 0 && this.columnLevels > 0) {
-      for (let i = 0; i < this.columnLevels; i++) {
-        for (let j = 0; j < this.rowLevels; j++) {
-          matrix[i][j] = {
-            value: '',
-            cssClass: PivotTableConverter.emptyClass,
+      for (let j = 0; j < this.rowLevels; j++) {
+        const rowHeaderAttribute = this.data.rowHeaderAttributes[j];
+        if (rowHeaderAttribute) {
+          const titleColSpan = this.nonStickyColumnIndex || this.columnLevels
+          matrix[0][j] = {
+            value: rowHeaderAttribute.title,
+            cssClass: PivotTableConverter.rowAttributeHeaderClass,
+            isHeader: true,
             rowSpan: 1,
-            colSpan: 1,
-            stickyStart: this.isRowLevelSticky(j),
-            stickyTop: this.isColumnLevelSticky(i),
-            isHeader: false,
+            colSpan: titleColSpan,
+            stickyTop: this.isColumnLevelSticky(0),
+            background: rowHeaderAttribute.color,
           };
+
+          if (this.columnLevels - titleColSpan > 0) {
+            matrix[this.nonStickyColumnIndex][j] = {
+              value: '',
+              cssClass: PivotTableConverter.rowAttributeHeaderClass,
+              isHeader: true,
+              rowSpan: 1,
+              colSpan: this.columnLevels - titleColSpan,
+              background: rowHeaderAttribute.color,
+            };
+          }
+
+        } else {
+          for (let i = 0; i < this.columnLevels; i++) {
+            matrix[i][j] = {
+              value: '',
+              cssClass: PivotTableConverter.emptyClass,
+              rowSpan: 1,
+              colSpan: 1,
+              stickyStart: this.isRowLevelSticky(j),
+              stickyTop: this.isColumnLevelSticky(i),
+              isHeader: false,
+            }
+          }
         }
       }
     }
