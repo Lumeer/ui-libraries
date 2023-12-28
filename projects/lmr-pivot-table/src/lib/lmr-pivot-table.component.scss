@@ -42,6 +42,13 @@
   }
 }
 
+.pivot-row-attribute-header-cell {
+  &.sticky-top, &.sticky-start {
+    position: sticky;
+    z-index: 11;
+  }
+}
+
 .pivot-empty-cell {
   background: white;
   border: 1px white solid;

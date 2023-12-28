@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
+    "build-pivot": "ng-packagr -p ./projects/lmr-pivot-table/ng-package.json",
     "publish-pivot": "ng-packagr -p ./projects/lmr-pivot-table/ng-package.json && cd dist/lmr-pivot-table && npm pack && npm publish",
     "pack-pivot": "ng-packagr -p ./projects/lmr-pivot-table/ng-package.json && cd dist/lmr-pivot-table && npm pack"
   },

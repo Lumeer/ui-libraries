@@ -1,4 +1,5 @@
 import {Constraint, DataAggregationType, QueryAttribute, QueryStem} from '@lumeer/data-filters';
+import {LmrPivotDataHeader} from './lmr-pivot-data';
 
 export interface LmrPivotConfig {
   version?: LmrPivotConfigVersion;
@@ -8,12 +9,10 @@ export interface LmrPivotConfig {
 
 export interface LmrPivotTransform {
   checkValidConstraintOverride?: (c1: Constraint, c2: Constraint) => Constraint;
-  translateAggregation?: (type: DataAggregationType) => string;
-}
-
-export interface LmrPivotStrings {
-  summaryString: string;
-  headerSummaryString: string;
+  formatAggregation?: (type: DataAggregationType) => string;
+  formatSummaryHeader?: (header: LmrPivotDataHeader, level: number) => {title?: string; summary: string};
+  formatRowHeader?: (title: string, level: number) => string;
+  formatColumnHeader?: (title: string, level: number) => string;
 }
 
 export interface LmrPivotStemConfig {
@@ -33,6 +32,7 @@ export interface LmrPivotRowColumnAttribute extends LmrPivotAttribute {
   showSums?: boolean;
   sticky?: boolean;
   sort?: LmrPivotSort;
+  expressions?: LmrPivotExpression[];
 }
 
 export interface LmrPivotRowAttribute extends LmrPivotRowColumnAttribute {
@@ -68,3 +68,24 @@ export interface LmrPivotValueAttribute extends LmrPivotAttribute {
   aggregation: DataAggregationType;
   valueType?: LmrPivotValueType;
 }
+
+export interface LmrPivotExpression {
+  operation: LmrPivotExpressionOperation;
+  operands: LmrPivotOperand[];
+  title: string;
+  type: 'expression'
+}
+
+export type LmrPivotExpressionOperation = 'add' | 'subtract' | 'multiply' | 'divide';
+
+export interface LmrPivotHeaderOperand {
+  type: 'header';
+  value: string;
+}
+
+export interface LmrPivotValueOperand {
+  type: 'value';
+  value: number;
+}
+
+export type LmrPivotOperand = LmrPivotHeaderOperand | LmrPivotValueOperand | LmrPivotExpression;

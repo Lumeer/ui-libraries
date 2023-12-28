@@ -1,8 +1,11 @@
 <lmr-pivot-table [transform]="transform"
-                 [strings]="strings"
                  [data]="data"
                  [config]="pivotConfig"
                  [query]="query"
                  [constraintData]="constraintData"
-                 [collections]="[collection]">
+                 [collections]="[collection]"
+                 [emptyTablesTemplateInput]="emptyTablesTemplate"
+                 [tableCellTemplateInput]="tableCellTemplate"
+                 (pivotDataChange)="pivotDataChange.emit($event)"
+                 (pivotTablesChange)="pivotTablesChange.emit($event)">
 </lmr-pivot-table>

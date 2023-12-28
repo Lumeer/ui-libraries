@@ -16,29 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  Constraint,
-  ConstraintData,
-  DataAggregationType,
-  NumberConstraint,
-  PercentageConstraint,
-  UnknownConstraint,
-  aggregateDataValues,
-  isValueAggregation, DataResource,
-} from '@lumeer/data-filters';
-import {
-  deepObjectCopy,
-  isArray,
-  isNotNullOrUndefined,
-  isNullOrUndefined,
-  isNumeric, shadeColor,
-  toNumber,
-  uniqueValues,
-} from '@lumeer/utils';
+import {aggregateDataValues, Constraint, ConstraintData, DataAggregationType, DataResource, isValueAggregation, NumberConstraint, PercentageConstraint, UnknownConstraint,} from '@lumeer/data-filters';
+import {deepObjectCopy, isArray, isNotNullOrUndefined, isNullOrUndefined, isNumeric, shadeColor, toNumber, uniqueValues,} from '@lumeer/utils';
 
-import {LmrPivotData, LmrPivotDataHeader, LmrPivotStemData} from './lmr-pivot-data';
+import {LmrPivotData, LmrPivotDataHeader, LmrPivotDataHeaderExpression, LmrPivotDataHeaderOperand, LmrPivotDimensionConfig, LmrPivotStemData} from './lmr-pivot-data';
 import {LmrPivotTable, LmrPivotTableCell} from './lmr-pivot-table';
-import {LmrPivotSort, LmrPivotStrings, LmrPivotValueType} from './lmr-pivot-config';
+import {LmrPivotExpression, LmrPivotHeaderOperand, LmrPivotOperand, LmrPivotSort, LmrPivotTransform, LmrPivotValueType} from './lmr-pivot-config';
 import {COLOR_GRAY100, COLOR_GRAY200, COLOR_GRAY300, COLOR_GRAY400, COLOR_GRAY500} from './lmr-pivot-constants';
 
 interface HeaderGroupInfo {
@@ -69,7 +52,7 @@ export class PivotTableConverter {
   private readonly percentageConstraint = new PercentageConstraint({decimals: 2});
 
   private data: LmrPivotStemData;
-  private strings: LmrPivotStrings;
+  private transform: LmrPivotTransform;
   private values: any[][];
   private dataResources: DataResource[][][];
   private constraintData: ConstraintData;
@@ -81,12 +64,12 @@ export class PivotTableConverter {
   private nonStickyRowIndex: number;
   private nonStickyColumnIndex: number;
 
-  public createTables(pivotData: LmrPivotData, strings: LmrPivotStrings): LmrPivotTable[] {
+  public createTables(pivotData: LmrPivotData, transform: LmrPivotTransform): LmrPivotTable[] {
     if (!pivotData) {
       return [{cells: []}];
     }
 
-    this.strings = strings;
+    this.transform = transform;
     this.constraintData = pivotData.constraintData;
 
     return (pivotData.data || []).map(d => {
@@ -108,12 +91,12 @@ export class PivotTableConverter {
     this.data = preparePivotData(data, this.constraintData, this.valueTypeInfo);
     this.values = data.values || [];
     this.dataResources = data.dataResources || [];
-    this.rowLevels = (data.rowShowSums || []).length;
-    this.columnLevels = (data.columnShowSums || []).length + (data.hasAdditionalColumnLevel ? 1 : 0);
-    const rowAllSticky = this.data.rowSticky?.length && this.data.rowSticky.every(sticky => !!sticky)
-    this.nonStickyRowIndex = Math.max(rowAllSticky ? this.rowLevels : (this.data.rowSticky?.findIndex(sticky => !sticky) || 0), 0);
-    const columnAllSticky = this.data.columnSticky?.length && this.data.columnSticky.every(sticky => !!sticky)
-    this.nonStickyColumnIndex = Math.max(columnAllSticky ? this.columnLevels : (this.data.columnSticky?.findIndex(sticky => !sticky) || 0), 0);
+    this.rowLevels = (data.rowsConfig || []).length;
+    this.columnLevels = (data.columnsConfig || []).length + (data.hasAdditionalColumnLevel ? 1 : 0);
+    const rowAllSticky = this.data.rowsConfig?.length && this.data.rowsConfig.every(config => !!config?.sticky)
+    this.nonStickyRowIndex = Math.max(rowAllSticky ? this.rowLevels : (this.data.rowsConfig?.findIndex(config => !config?.sticky) || 0), 0);
+    const columnAllSticky = this.data.columnsConfig?.length && this.data.columnsConfig.every(config => !!config?.sticky)
+    this.nonStickyColumnIndex = Math.max(columnAllSticky ? this.columnLevels : (this.data.columnsConfig?.findIndex(config => !config?.sticky) || 0), 0);
     const hasValue = (data.valueTitles || []).length > 0;
     if ((this.data.rowHeaders || []).length > 0) {
       this.rowsTransformationArray = createTransformationMap(
@@ -139,11 +122,11 @@ export class PivotTableConverter {
   }
 
   private get rowShowSums(): boolean[] {
-    return this.data.rowShowSums;
+    return (this.data.rowsConfig || []).map(config => config.showSums);
   }
 
   private get columnShowSums(): boolean[] {
-    return this.data.columnShowSums;
+    return (this.data.columnsConfig || []).map(config => config.showSums);
   }
 
   private transformData(): LmrPivotTable {
@@ -173,7 +156,7 @@ export class PivotTableConverter {
     for (const header of headers) {
       const rowSpan = getDirectHeaderChildCount(header, level, showSums);
       cells[currentIndex][level] = {
-        value: header.title,
+        value: this.formatRowHeader(header.title, level),
         cssClass: PivotTableConverter.rowHeaderClass,
         isHeader: true,
         stickyStart: this.isRowLevelSticky(level),
@@ -199,55 +182,84 @@ export class PivotTableConverter {
       }
 
       currentIndex += getHeaderChildCount(header, level, showSums);
+
+      const expressions = header.expressions || []
+      for (let i = 0; i < expressions.length; i++) {
+        const expressionIndex = currentIndex - (expressions.length - i)
+        const background = this.getSummaryBackground(level);
+        this.splitRowGroupHeader(cells, expressionIndex, level, expressions[i].title)
+        this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
+      }
     }
 
     if (showSums[level]) {
-      const background = this.getSummaryBackground(level);
-      const summary = level === 0 ? this.strings?.summaryString || '' : this.strings?.headerSummaryString || '';
-      const columnIndex = Math.max(level - 1, 0);
-      let colSpan = this.rowLevels - columnIndex;
-      const stickyStart = this.isRowLevelSticky(columnIndex);
-
-      // split row group header cell because of correct sticky scroll
-      if (stickyStart && this.nonStickyRowIndex > 0 && this.nonStickyRowIndex < this.rowLevels && colSpan > 1) {
-        const newColspan = this.nonStickyRowIndex - columnIndex;
-
-        cells[currentIndex][this.nonStickyRowIndex] = {
-          value: undefined,
-          constraint: undefined,
-          label: undefined,
-          cssClass: PivotTableConverter.rowGroupHeaderClass,
-          isHeader: true,
-          rowSpan: 1,
-          colSpan: colSpan - newColspan,
-          background,
-          summary: undefined,
-        };
-
-        colSpan = newColspan;
-      }
-
-      cells[currentIndex][columnIndex] = {
-        value: parentHeader?.title,
-        constraint: parentHeader?.constraint,
-        label: parentHeader?.attributeName,
-        cssClass: PivotTableConverter.rowGroupHeaderClass,
-        isHeader: true,
-        stickyStart,
-        rowSpan: 1,
-        colSpan,
-        background,
-        summary,
-      };
+      const { title, summary } = this.formatSummaryHeader(parentHeader, level)
+      this.splitRowGroupHeader(cells, currentIndex, level, summary, title, parentHeader?.constraint, parentHeader?.title)
 
       const rowIndexes = getTargetIndexesForHeaders(headers);
       const transformedRowIndexes = rowIndexes
         .map(v => this.rowsTransformationArray[v])
         .filter(v => isNotNullOrUndefined(v));
+
+      const background = this.getSummaryBackground(level);
       rowGroupsInfo[currentIndex] = {background, indexes: transformedRowIndexes, level};
 
       this.fillCellsForGroupedRow(cells, rowIndexes, currentIndex, background);
     }
+  }
+
+  private splitRowGroupHeader(cells: LmrPivotTableCell[][], currentIndex: number, level: number, summary: string, title?: string, constraint?: Constraint, label?: string) {
+    const background = this.getSummaryBackground(level);
+    const columnIndex = Math.max(level - 1, 0);
+    let colSpan = this.rowLevels - columnIndex;
+    const stickyStart = this.isRowLevelSticky(columnIndex);
+
+    // split row group header cell because of correct sticky scroll
+    if (stickyStart && this.nonStickyRowIndex > 0 && this.nonStickyRowIndex < this.rowLevels && colSpan > 1) {
+      const newColspan = this.nonStickyRowIndex - columnIndex;
+
+      cells[currentIndex][this.nonStickyRowIndex] = {
+        value: undefined,
+        constraint: undefined,
+        label: undefined,
+        cssClass: PivotTableConverter.rowGroupHeaderClass,
+        isHeader: true,
+        rowSpan: 1,
+        colSpan: colSpan - newColspan,
+        background,
+        summary: undefined,
+      };
+
+      colSpan = newColspan;
+    }
+
+    cells[currentIndex][columnIndex] = {
+      value: title,
+      constraint,
+      label,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      isHeader: true,
+      stickyStart,
+      rowSpan: 1,
+      colSpan,
+      background,
+      summary,
+    };
+  }
+
+  private formatSummaryHeader(header: LmrPivotDataHeader, level: number): {title?: string; summary: string} {
+    return this.transform.formatSummaryHeader?.(header, level) || {
+      title: header?.title,
+      summary: '',
+    }
+  }
+
+  private formatRowHeader(title: string, level: number): string {
+    return this.transform?.formatRowHeader?.(title, level) || title
+  }
+
+  private formatColumnHeader(title: string, level: number): string {
+    return this.transform?.formatColumnHeader?.(title, level) || title
   }
 
   private getHeaderBackground(header: { color: string }, level: number): string {
@@ -263,12 +275,12 @@ export class PivotTableConverter {
   }
 
   private isRowLevelSticky(level: number): boolean {
-    return this.data?.rowSticky?.[level];
+    return this.data?.rowsConfig?.[level]?.sticky;
   }
 
   private isColumnLevelSticky(level: number): boolean {
-    const maxLevel = Math.min(level, (this.data?.columnSticky?.length ?? Number.MAX_SAFE_INTEGER) - 1);
-    return this.data?.columnSticky?.[maxLevel];
+    const maxLevel = Math.min(level, (this.data?.columnsConfig?.length ?? Number.MAX_SAFE_INTEGER) - 1);
+    return this.data?.columnsConfig?.[maxLevel]?.sticky;
   }
 
   private getSummaryBackground(level: number): string {
@@ -383,6 +395,67 @@ export class PivotTableConverter {
     }
   }
 
+  private fillCellsForExpressionRow(
+    cells: LmrPivotTableCell[][],
+    expression: LmrPivotDataHeaderExpression,
+    rowIndexInCells: number,
+    background: string
+  ) {
+    for (let column = 0; column < this.columnsTransformationArray.length; column++) {
+      const columnIndexInCells = this.columnsTransformationArray[column];
+      if (isNotNullOrUndefined(columnIndexInCells)) {
+        const {value, dataResources} = this.evaluateExpression(expression, column);
+        const valueIndex = column % this.data.valueTitles.length;
+        const formattedValue = this.formatValueByConstraint(value, valueIndex);
+        cells[rowIndexInCells][columnIndexInCells] = {
+          value: String(formattedValue),
+          dataResources,
+          colSpan: 1,
+          rowSpan: 1,
+          cssClass: PivotTableConverter.groupDataClass,
+          isHeader: false,
+          background,
+        };
+      }
+    }
+  }
+
+  private evaluateExpression(expression: LmrPivotDataHeaderExpression, column: number): {value: number; dataResources: DataResource[] } {
+    return (expression.operands || []).reduce((result, operand, index) => {
+      const {value, dataResources } = this.evaluateOperand(operand, column)
+      result.dataResources.push(...dataResources)
+      switch (expression.operation) {
+        case "add":
+          result.value += value
+          break;
+        case "subtract":
+          result.value = (index === 0 ? value : result.value - value)
+          break;
+        case 'multiply':
+          result.value = index === 0 ? value : result.value * value
+          break;
+        case 'divide':
+          result.value = index === 0 ? value : value ? result.value / value : result.value
+          break;
+      }
+
+      return result
+    } , {value: 0, dataResources: []})
+  }
+
+  private evaluateOperand(operand: LmrPivotDataHeaderOperand, column: number): {value: number; dataResources: DataResource[] } {
+    switch (operand.type) {
+      case "expression": return this.evaluateExpression(operand, column)
+      case "value": return {value: operand.value, dataResources: []}
+      case "header": {
+        const rows = getTargetIndexesForHeaders(operand.headers);
+        const {values, dataResources} = this.getGroupedValuesForRowsAndCols(rows, [column]);
+        const {value} = this.aggregateDataValues(values, [column]);
+        return {value, dataResources}
+      }
+    }
+  }
+
   private getGroupedValuesForRowsAndCols(
     rows: number[],
     columns: number[]
@@ -430,7 +503,7 @@ export class PivotTableConverter {
     for (const header of headers) {
       const colSpan = getDirectHeaderChildCount(header, level, showSums, numberOfSums);
       cells[level][currentIndex] = {
-        value: header.title,
+        value: this.formatColumnHeader(header.title, level),
         cssClass: PivotTableConverter.columnHeaderClass,
         isHeader: true,
         rowSpan: 1,
@@ -460,13 +533,13 @@ export class PivotTableConverter {
 
     if (showSums[level]) {
       const background = this.getSummaryBackground(level);
-      const summary = level === 0 ? this.strings?.summaryString || '' : this.strings?.headerSummaryString || '';
+      const { title, summary } = this.formatSummaryHeader(parentHeader, level)
       const numberOfValues = this.data.valueTitles.length;
       const rowIndex = Math.max(level - 1, 0);
       const shouldAddValueHeaders = numberOfValues > 1;
 
       cells[rowIndex][currentIndex] = {
-        value: parentHeader?.title,
+        value: title,
         constraint: parentHeader?.constraint,
         label: parentHeader?.attributeName,
         cssClass: PivotTableConverter.columnGroupHeaderClass,
@@ -534,14 +607,18 @@ export class PivotTableConverter {
   }
 
   private aggregateAndFormatDataValues(values: any[], rows: number[], columns: number[]): any {
+    const {value, aggregation} = this.aggregateDataValues(values, columns);
+    return aggregation === DataAggregationType.Join ? value : this.formatGroupedValueByValueType(value, rows, columns)
+  }
+
+  private aggregateDataValues(values: any[], columns: number[]): {value: any; aggregation: DataAggregationType} {
     const aggregation = this.aggregationByColumns(columns);
     if (aggregation === DataAggregationType.Join) {
       const valueIndex = this.getValueIndexForColumns(columns);
       const constraint = this.data.valuesConstraints?.[valueIndex] || this.valueTypeInfo[valueIndex]?.defaultConstraint;
-      return aggregateDataValues(aggregation, values, constraint, false, this.constraintData);
+      return {value: aggregateDataValues(aggregation, values, constraint, false, this.constraintData), aggregation};
     }
-    const aggregatedValue = aggregateDataValues(aggregation, values);
-    return this.formatGroupedValueByValueType(aggregatedValue, rows, columns);
+    return {value: aggregateDataValues(aggregation, values), aggregation};
   }
 
   private aggregationByColumns(columns: number[]): DataAggregationType {
@@ -700,6 +777,7 @@ export class PivotTableConverter {
             rowSpan: 1,
             colSpan: titleColSpan,
             stickyTop: this.isColumnLevelSticky(0),
+            stickyStart: this.isRowLevelSticky(j),
             background: rowHeaderAttribute.color,
           };
 
@@ -711,6 +789,7 @@ export class PivotTableConverter {
               rowSpan: 1,
               colSpan: this.columnLevels - titleColSpan,
               background: rowHeaderAttribute.color,
+              stickyStart: this.isRowLevelSticky(j),
             };
           }
 
@@ -756,7 +835,68 @@ function preparePivotData(
 ): LmrPivotStemData {
   const numberOfSums = Math.max(1, (data.valueTitles || []).length);
   const values = computeValuesByValueType(data.values, data.valueTypes, numberOfSums, valueTypeInfo);
-  return sortPivotData({...data, values}, constraintData);
+  const sorted = sortPivotData({...data, values}, constraintData);
+  return fillExpressionsToData(sorted)
+}
+
+function fillExpressionsToData(data: LmrPivotStemData): LmrPivotStemData {
+  return {
+    ...data,
+    rowHeaders: fillExpressionsToHeaders(data.rowHeaders, data.rowsConfig, 0),
+    columnHeaders: fillExpressionsToHeaders(data.columnHeaders, data.columnsConfig, 0),
+  }
+}
+
+function fillExpressionsToHeaders(headers: LmrPivotDataHeader[], configs: LmrPivotDimensionConfig[], index: number): LmrPivotDataHeader[] {
+  const expressions = configs?.[index]?.expressions || []
+  const headersCopy = [...headers]
+  for (const expression of expressions) {
+    const dataHeaderExpression = extendPivotExpression(expression, headers)
+    if (dataHeaderExpression.lastHeaderIndex >= 0) {
+      const lastHeaderIndex = dataHeaderExpression.lastHeaderIndex
+      const newHeader: LmrPivotDataHeader = {...headersCopy[lastHeaderIndex], expressions: [...(headersCopy[lastHeaderIndex].expressions || []), dataHeaderExpression]}
+      headersCopy.splice(lastHeaderIndex, 1, newHeader)
+    }
+  }
+
+  return headersCopy
+}
+
+function extendPivotExpression(expression: LmrPivotExpression, headers: LmrPivotDataHeader[]): LmrPivotDataHeaderExpression {
+  const dataHeaderOperands: LmrPivotDataHeaderOperand[] = [];
+  let lastHeaderIndex: number = -1
+
+  function traverse(operands: LmrPivotOperand[]): void {
+    for (const operand of operands){
+      if (operand.type === 'header') {
+        const indexes = getOperandIndexesInHeaders(operand, headers)
+        lastHeaderIndex = Math.max(lastHeaderIndex, ...indexes)
+        const operandHeaders = indexes.map(index => headers[index])
+        dataHeaderOperands.push({...operand, headers: operandHeaders});
+      } else if (operand.type === 'expression') {
+        traverse(operand.operands);
+      } else {
+        operands.push(operand)
+      }
+    }
+  }
+
+  traverse(expression.operands);
+
+  return {...expression, lastHeaderIndex, operands: dataHeaderOperands};
+}
+
+function getOperandIndexesInHeaders(operand: LmrPivotHeaderOperand, headers: LmrPivotDataHeader[]): number[] {
+  return (headers || []).reduce<number[]>((indexes, header, index) => {
+    if (operandContainsHeader(operand, header)) {
+      indexes.push(index)
+    }
+    return indexes
+  }, [])
+}
+
+function operandContainsHeader(operand: LmrPivotHeaderOperand, header: LmrPivotDataHeader): boolean {
+  return header.title.match(new RegExp(operand.value))?.length > 0
 }
 
 function computeValuesByValueType(
@@ -921,15 +1061,15 @@ function getHeaderChildCount(
   level: number,
   showSums: boolean[],
   numberOfSums = 1,
-  includeChild = true
 ): number {
+  const numExpressions = (pivotDataHeader.expressions || []).length
   if (pivotDataHeader.children) {
     return pivotDataHeader.children.reduce(
-      (sum, header) => sum + getHeaderChildCount(header, level + 1, showSums, numberOfSums, includeChild),
-      showSums[level + 1] ? numberOfSums : 0
+      (sum, header) => sum + getHeaderChildCount(header, level + 1, showSums, numberOfSums),
+      (showSums[level + 1] ? numberOfSums : 0) + numExpressions
     );
   }
-  return includeChild ? 1 : 0;
+  return 1 + numExpressions;
 }
 
 function getDirectHeaderChildCount(
@@ -948,10 +1088,12 @@ function getDirectHeaderChildCount(
 }
 
 export function sortPivotData(data: LmrPivotStemData, constraintData: ConstraintData): LmrPivotStemData {
+  const rowSorts = (data.rowsConfig || []).map(config => config.sort)
+  const columnSorts = (data.columnsConfig || []).map(config => config.sort)
   return {
     ...data,
-    rowHeaders: sortPivotRowDataHeaders(data.rowHeaders, data.rowSorts, data, constraintData),
-    columnHeaders: sortPivotColumnDataHeaders(data.columnHeaders, data.columnSorts, data, constraintData),
+    rowHeaders: sortPivotRowDataHeaders(data.rowHeaders, rowSorts, data, constraintData),
+    columnHeaders: sortPivotColumnDataHeaders(data.columnHeaders, columnSorts, data, constraintData),
   };
 }
 

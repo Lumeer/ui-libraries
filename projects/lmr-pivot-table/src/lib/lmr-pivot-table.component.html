@@ -29,7 +29,7 @@
                   </ng-template>
 
                   <ng-template
-                    [ngTemplateOutlet]="tableCellTemplate || defaultTableCellTemplate"
+                    [ngTemplateOutlet]="tableCellTemplate || tableCellTemplateInput || defaultTableCellTemplate"
                     [ngTemplateOutletContext]="{ value: cell.value, cell: cell }">
                   </ng-template>
                 </div>
@@ -47,7 +47,7 @@
                 </ng-template>
 
                 <ng-template
-                  [ngTemplateOutlet]="tableCellTemplate || defaultTableCellTemplate"
+                  [ngTemplateOutlet]="tableCellTemplate || tableCellTemplateInput || defaultTableCellTemplate"
                   [ngTemplateOutletContext]="{ value: cell.value, cell: cell }">
                 </ng-template>
               </ng-container>
@@ -65,7 +65,7 @@
     </ng-template>
 
     <ng-template
-      [ngTemplateOutlet]="emptyTablesTemplate || defaultEmptyTablesTemplate"
+      [ngTemplateOutlet]="emptyTablesTemplate || emptyTablesTemplateInput || defaultEmptyTablesTemplate"
       [ngTemplateOutletContext]="{  }">
     </ng-template>
   </ng-container>

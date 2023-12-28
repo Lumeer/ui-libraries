@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {Constraint, ConstraintData, DataAggregationType, DataResource} from '@lumeer/data-filters';
-import {LmrPivotSort, LmrPivotValueType} from './lmr-pivot-config';
+import {LmrPivotExpression, LmrPivotHeaderOperand, LmrPivotSort, LmrPivotValueOperand, LmrPivotValueType} from './lmr-pivot-config';
 
 export interface LmrPivotData {
   data: LmrPivotStemData[];
@@ -39,13 +39,16 @@ export interface LmrPivotStemData {
   valueTypes?: LmrPivotValueType[];
   valueAggregations?: DataAggregationType[];
 
-  rowShowSums: boolean[];
-  rowSticky: boolean[];
-  rowSorts?: LmrPivotSort[];
-  columnShowSums: boolean[];
-  columnSticky: boolean[];
-  columnSorts?: LmrPivotSort[];
+  rowsConfig: LmrPivotDimensionConfig[];
+  columnsConfig: LmrPivotDimensionConfig[];
   hasAdditionalColumnLevel?: boolean;
+}
+
+export interface LmrPivotDimensionConfig {
+  showSums?: boolean;
+  sticky?: boolean;
+  sort?: LmrPivotSort;
+  expressions?: LmrPivotExpression[];
 }
 
 export interface LmrPivotHeaderAttribute {
@@ -61,4 +64,12 @@ export interface LmrPivotDataHeader {
   isValueHeader: boolean;
   constraint?: Constraint;
   attributeName?: string;
+  expressions?: LmrPivotDataHeaderExpression[];
 }
+
+export interface LmrPivotDataHeaderExpression extends LmrPivotExpression {
+  lastHeaderIndex?: number;
+  operands: LmrPivotDataHeaderOperand[];
+}
+
+export type LmrPivotDataHeaderOperand = LmrPivotHeaderOperand & {headers: LmrPivotDataHeader[]} | LmrPivotValueOperand | LmrPivotDataHeaderExpression;

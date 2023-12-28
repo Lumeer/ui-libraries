@@ -34,8 +34,8 @@ import {
   dataAggregationConstraint, QueryStem, Collection, LinkType, DataResource, Query, AttributesResourceType, attributesResourcesAttributesMap,
 } from '@lumeer/data-filters';
 import {deepObjectsEquals, flattenMatrix, flattenValues, isArray, isNotNullOrUndefined, uniqueValues} from '@lumeer/utils';
-import {LmrPivotAttribute, LmrPivotConfig, LmrPivotRowColumnAttribute, LmrPivotSort, LmrPivotStemConfig, LmrPivotTransform, LmrPivotValueAttribute} from './lmr-pivot-config';
-import {LmrPivotData, LmrPivotDataHeader, LmrPivotHeaderAttribute, LmrPivotStemData} from './lmr-pivot-data';
+import {LmrPivotAttribute, LmrPivotConfig, LmrPivotRowColumnAttribute, LmrPivotStemConfig, LmrPivotTransform, LmrPivotValueAttribute} from './lmr-pivot-config';
+import {LmrPivotData, LmrPivotDataHeader, LmrPivotDimensionConfig, LmrPivotHeaderAttribute, LmrPivotStemData} from './lmr-pivot-data';
 import {pivotStemConfigIsEmpty} from './pivot-util';
 
 interface PivotMergeData {
@@ -59,13 +59,9 @@ interface PivotColors {
 }
 
 interface PivotConfigData {
-  rowShowSums: boolean[];
+  rowsConfig: LmrPivotDimensionConfig[];
   rowShowHeaderAttributes: boolean[];
-  rowSticky: boolean[];
-  rowSorts: LmrPivotSort[];
-  columnShowSums: boolean[];
-  columnSticky: boolean[];
-  columnSorts: LmrPivotSort[];
+  columnsConfig: LmrPivotDimensionConfig[];
   columnShowHeaderAttributes: boolean[];
   rowAttributes: Attribute[];
   columnAttributes: Attribute[];
@@ -238,16 +234,14 @@ export class PivotDataConverter {
       mergedValueAttributes.push(...filteredValueAttributes);
 
       if (!additionalData) {
+        const rowSticky = this.mapStickyValues((config.rowAttributes || []).map(attr => attr.sticky));
+        const columnSticky = this.mapStickyValues((config.columnAttributes || []).map(attr => attr.sticky));
         additionalData = {
-          rowShowSums: (config.rowAttributes || []).map(attr => attr.showSums),
+          rowsConfig: (config.rowAttributes || []).map((attr, index) => ({showSums: attr.showSums, sort: attr.sort, expressions: attr.expressions, sticky: rowSticky[index]})),
+          columnsConfig: (config.columnAttributes || []).map((attr, index) => ({showSums: attr.showSums, sort: attr.sort, expressions: attr.expressions, sticky: columnSticky[index]})),
           rowShowHeaderAttributes: (config.rowAttributes || []).map(attr => attr.showHeader),
-          rowSticky: this.mapStickyValues((config.rowAttributes || []).map(attr => !!attr.sticky)),
-          rowSorts: (config.rowAttributes || []).map(attr => attr.sort),
           rowAttributes: (config.rowAttributes || []).map(attr => this.pivotAttributeAttribute(attr)),
-          columnShowSums: (config.columnAttributes || []).map(attr => attr.showSums),
           columnShowHeaderAttributes: (config.columnAttributes || []).map(attr => false),
-          columnSticky: this.mapStickyValues((config.columnAttributes || []).map(attr => !!attr.sticky)),
-          columnSorts: (config.columnAttributes || []).map(attr => attr.sort),
           columnAttributes: (config.columnAttributes || []).map(attr => this.pivotAttributeAttribute(attr)),
         };
       }
@@ -393,12 +387,8 @@ export class PivotDataConverter {
       valueTypes: data.valueTypes,
       valueAggregations: data.aggregations,
 
-      rowShowSums: [],
-      rowSticky: [],
-      rowSorts: [],
-      columnShowSums: [],
-      columnSticky: [],
-      columnSorts: [],
+      rowsConfig: [],
+      columnsConfig: [],
 
       hasAdditionalColumnLevel: true,
     };
@@ -651,7 +641,7 @@ export class PivotDataConverter {
   }
 
   public createValueTitle(aggregation: DataAggregationType, attributeName: string): string {
-    const valueAggregationTitle = this.transform?.translateAggregation?.(aggregation) || aggregation.toString();
+    const valueAggregationTitle = this.transform?.formatAggregation?.(aggregation) || aggregation.toString();
     return `${valueAggregationTitle} ${attributeName || ''}`.trim();
   }
 

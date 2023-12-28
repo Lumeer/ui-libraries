@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, ContentChild, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, TemplateRef} from '@angular/core';
-import {LmrPivotConfig, LmrPivotStrings, LmrPivotTransform} from './util/lmr-pivot-config';
+import {LmrPivotConfig, LmrPivotTransform} from './util/lmr-pivot-config';
 import {Collection, ConstraintData, DocumentsAndLinksData, LinkType, Query} from '@lumeer/data-filters';
 import {PivotDataConverter} from './util/pivot-data-converter';
 import {LmrPivotData} from './util/lmr-pivot-data';
@@ -48,13 +48,19 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   public transform: LmrPivotTransform;
 
   @Input()
-  public strings: LmrPivotStrings;
+  public emptyTablesTemplateInput: TemplateRef<any>;
+
+  @Input()
+  public tableCellTemplateInput: TemplateRef<any>;
 
   @Output()
   public cellClick = new EventEmitter<LmrPivotTableCell>();
 
   @Output()
   public pivotDataChange = new EventEmitter<LmrPivotData>();
+
+  @Output()
+  public pivotTablesChange = new EventEmitter<LmrPivotTable[]>();
 
   @ContentChild(LmrEmptyTablesTemplateDirective, { read: TemplateRef }) emptyTablesTemplate: TemplateRef<any>;
   @ContentChild(LmrTableCellTemplateDirective, { read: TemplateRef }) tableCellTemplate: TemplateRef<any>;
@@ -77,7 +83,8 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
     );
 
     this.pivotTables$ = this.pivotData$.pipe(
-      map(data => this.pivotTableConverter.createTables(data, this.strings))
+      map(data => this.pivotTableConverter.createTables(data, this.transform)),
+      tap(tables => this.pivotTablesChange.emit(tables))
     );
   }
 

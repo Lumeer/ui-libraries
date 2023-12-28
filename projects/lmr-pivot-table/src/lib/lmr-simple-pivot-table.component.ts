@@ -1,9 +1,10 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
-import {LmrPivotConfig, LmrPivotStrings, LmrPivotTransform} from './util/lmr-pivot-config';
+import {ChangeDetectionStrategy, Component, ContentChild, EventEmitter, Input, OnChanges, Output, SimpleChanges, TemplateRef} from '@angular/core';
+import {LmrPivotConfig, LmrPivotTransform} from './util/lmr-pivot-config';
 import {Attribute, AttributesResourceType, Collection, ConstraintData, DocumentModel, DocumentsAndLinksData, generateId, LanguageTag, Query} from '@lumeer/data-filters';
 import {LmrPivotData} from './util/lmr-pivot-data';
-import {LmrPivotTableCell} from './util/lmr-pivot-table';
+import {LmrPivotTable, LmrPivotTableCell} from './util/lmr-pivot-table';
 import {LmrSimplePivotConfig} from './util/lmr-simple-pivot-config';
+import {LmrEmptyTablesTemplateDirective, LmrTableCellTemplateDirective} from './directives/lmr-templates.directive';
 
 @Component({
   selector: 'lmr-simple-pivot-table',
@@ -28,9 +29,6 @@ export class LmrSimplePivotTableComponent implements OnChanges {
   public transform: LmrPivotTransform;
 
   @Input()
-  public strings: LmrPivotStrings;
-
-  @Input()
   public locale: LanguageTag;
 
   @Output()
@@ -38,6 +36,12 @@ export class LmrSimplePivotTableComponent implements OnChanges {
 
   @Output()
   public pivotDataChange = new EventEmitter<LmrPivotData>();
+
+  @Output()
+  public pivotTablesChange = new EventEmitter<LmrPivotTable[]>();
+
+  @ContentChild(LmrEmptyTablesTemplateDirective, { read: TemplateRef }) emptyTablesTemplate: TemplateRef<any>;
+  @ContentChild(LmrTableCellTemplateDirective, { read: TemplateRef }) tableCellTemplate: TemplateRef<any>;
 
   public readonly collectionId = generateId()
   public readonly query: Query = {stems: [{collectionId: this.collectionId}]};

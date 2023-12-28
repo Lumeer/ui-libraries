@@ -255,7 +255,7 @@ const data: DocumentsAndLinksData = {
 
 describe('Pivot data converter', () => {
   const transform: LmrPivotTransform = {
-    translateAggregation: type => type.toString(),
+    formatAggregation: type => type.toString(),
     checkValidConstraintOverride: (c1, c2) => c1,
   }
   const dataConverter: PivotDataConverter = new PivotDataConverter();

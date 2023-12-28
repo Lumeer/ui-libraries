@@ -21,12 +21,17 @@ import {PercentageConstraint, PercentageConstraintConfig} from '@lumeer/data-fil
 import {LmrPivotData} from './lmr-pivot-data';
 import {PivotTableConverter} from './pivot-table-converter';
 import {COLOR_GRAY100, COLOR_GRAY200} from './lmr-pivot-constants';
-import {LmrPivotStrings} from './lmr-pivot-config';
+import {LmrPivotTransform} from './lmr-pivot-config';
 
 describe('Pivot table converter', () => {
   const headerSummaryString = 'H';
   const summaryString = 'S';
-  const strings: LmrPivotStrings = {headerSummaryString, summaryString}
+  const transform: LmrPivotTransform = {
+    formatSummaryHeader: (header, level) => ({
+      title: header?.title,
+      summary: level ? headerSummaryString : summaryString
+    })
+  }
   const converter: PivotTableConverter = new PivotTableConverter();
 
   it('should return empty rows', () => {
@@ -36,21 +41,17 @@ describe('Pivot table converter', () => {
           valueTitles: [],
           rowHeaders: [],
           rowHeaderAttributes: [],
-          rowSticky: [],
           columnHeaders: [],
           columnHeaderAttributes: [],
           values: [],
           dataResources: [],
-          rowSorts: [],
-          rowShowSums: [],
-          columnSorts: [],
-          columnShowSums: [],
+          rowsConfig: [],
+          columnsConfig: [],
           valueTypes: [],
-          columnSticky: [],
         },
       ],
     };
-    expect(converter.createTables(data, strings)).toEqual([{cells: []}]);
+    expect(converter.createTables(data, transform)).toEqual([{cells: []}]);
   });
 
   it('should return table by only values', () => {
@@ -60,7 +61,6 @@ describe('Pivot table converter', () => {
           valueTitles: ['A', 'B', 'C'],
           rowHeaders: [],
           rowHeaderAttributes: [],
-          rowSticky: [],
           columnHeaders: [
             {title: 'A', targetIndex: 0, color: undefined, isValueHeader: false},
             {title: 'B', targetIndex: 1, color: undefined, isValueHeader: false},
@@ -69,15 +69,14 @@ describe('Pivot table converter', () => {
           columnHeaderAttributes: [],
           values: [[10, 20, 30]],
           dataResources: [],
-          rowShowSums: [],
-          columnShowSums: [],
-          columnSticky: [],
+          rowsConfig: [],
+          columnsConfig: [],
           hasAdditionalColumnLevel: true,
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
     expect(pivotTable.cells.length).toEqual(2);
     expect(pivotTable.cells[0].length).toEqual(3);
     expect(pivotTable.cells[1].length).toEqual(3);
@@ -145,7 +144,6 @@ describe('Pivot table converter', () => {
       data: [
         {
           valueTitles: [],
-          rowSticky: [],
           rowHeaders: [
             {
               title: 'A',
@@ -175,18 +173,17 @@ describe('Pivot table converter', () => {
           ],
           rowHeaderAttributes: [],
           columnHeaders: [],
-          columnSticky: [],
           columnHeaderAttributes: [],
           values: [],
           dataResources: [],
-          rowShowSums: [true, true],
-          columnShowSums: [],
+          rowsConfig: [{showSums: true}, {showSums: true}],
+          columnsConfig: [],
           hasAdditionalColumnLevel: false,
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
     expect(pivotTable.cells.length).toEqual(10);
     expect(pivotTable.cells[0][0]).toEqual({
       value: 'A',
@@ -345,8 +342,8 @@ describe('Pivot table converter', () => {
     });
     expect(pivotTable.cells[9][1]).toEqual(undefined);
 
-    const dataWithoutSums: LmrPivotData = {...data, data: [{...data.data[0], rowShowSums: [false, false]}]};
-    const pivotTableWithoutSums = converter.createTables(dataWithoutSums, strings)[0];
+    const dataWithoutSums: LmrPivotData = {...data, data: [{...data.data[0], rowsConfig: [{}, {}]}]};
+    const pivotTableWithoutSums = converter.createTables(dataWithoutSums, transform)[0];
     expect(pivotTableWithoutSums.cells.length).toEqual(6);
   });
 
@@ -356,7 +353,6 @@ describe('Pivot table converter', () => {
         {
           valueTitles: [],
           rowHeaders: [],
-          rowSticky: [],
           rowHeaderAttributes: [],
           columnHeaders: [
             {
@@ -387,14 +383,13 @@ describe('Pivot table converter', () => {
           columnHeaderAttributes: [],
           values: [],
           dataResources: [],
-          columnSticky: [],
-          columnShowSums: [true, true],
-          rowShowSums: [],
+          rowsConfig: [],
+          columnsConfig: [{showSums: true}, {showSums: true}],
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
     expect(pivotTable.cells.length).toEqual(2);
     expect(pivotTable.cells[0].length).toEqual(9);
     expect(pivotTable.cells[0][0]).toEqual({
@@ -542,8 +537,8 @@ describe('Pivot table converter', () => {
     });
     expect(pivotTable.cells[1][8]).toEqual(undefined);
 
-    const dataWithoutSums: LmrPivotData = {...data, data: [{...data.data[0], columnShowSums: [false, false]}]};
-    const pivotTableWithoutSums = converter.createTables(dataWithoutSums, strings)[0];
+    const dataWithoutSums: LmrPivotData = {...data, data: [{...data.data[0], columnsConfig: [{}, {}]}]};
+    const pivotTableWithoutSums = converter.createTables(dataWithoutSums, transform)[0];
     expect(pivotTableWithoutSums.cells.length).toEqual(2);
     expect(pivotTableWithoutSums.cells[0].length).toEqual(5);
   });
@@ -553,7 +548,6 @@ describe('Pivot table converter', () => {
       data: [
         {
           valueTitles: ['X', 'Y'],
-          rowSticky: [],
           rowHeaders: [
             {
               title: 'A',
@@ -598,15 +592,14 @@ describe('Pivot table converter', () => {
             [null, 4],
           ],
           dataResources: [],
-          rowShowSums: [true, true],
-          columnShowSums: [],
-          columnSticky: [],
+          rowsConfig: [{showSums: true}, {showSums: true}],
+          columnsConfig: [],
           hasAdditionalColumnLevel: true,
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
     expect(pivotTable.cells.length).toEqual(11);
     expect(pivotTable.cells[0].length).toEqual(4);
     expect(pivotTable.cells[0][0]).toEqual({
@@ -616,6 +609,7 @@ describe('Pivot table converter', () => {
       isHeader: true,
       cssClass: PivotTableConverter.rowAttributeHeaderClass,
       stickyTop: undefined,
+      stickyStart: undefined,
       background: '#ff0000',
     });
     expect(pivotTable.cells[0][2]).toEqual({
@@ -712,17 +706,15 @@ describe('Pivot table converter', () => {
             new PercentageConstraint({} as PercentageConstraintConfig),
             new PercentageConstraint({} as PercentageConstraintConfig),
           ],
-          rowShowSums: [true, true],
-          rowSticky: [],
-          columnShowSums: [],
+          rowsConfig: [{showSums: true}, {showSums: true}],
+          columnsConfig: [],
           columnHeaderAttributes: [],
-          columnSticky: [],
           hasAdditionalColumnLevel: true,
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
 
     expect(pivotTable.cells[0][0].value).toEqual('H1');
     expect(pivotTable.cells[1][2].value).toEqual('10%');
@@ -786,16 +778,14 @@ describe('Pivot table converter', () => {
           values: [[1, 5, 6, 2, null, 1, 4, 5, null]],
           columnHeaderAttributes: [],
           dataResources: [],
-          rowSticky: [],
-          rowShowSums: [],
-          columnShowSums: [true],
-          columnSticky: [],
+          rowsConfig: [],
+          columnsConfig: [{showSums: true}],
           hasAdditionalColumnLevel: true,
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
     expect(pivotTable.cells[0][0]).toEqual({
       value: 'A',
       isHeader: true,
@@ -943,15 +933,13 @@ describe('Pivot table converter', () => {
           ],
           columnHeaderAttributes: [],
           dataResources: [],
-          rowSticky: [],
-          rowShowSums: [false, true],
-          columnSticky: [],
-          columnShowSums: [true, true],
+          rowsConfig: [{}, {showSums: true}],
+          columnsConfig: [{showSums: true}, {showSums: true}],
         },
       ],
     };
 
-    const pivotTable = converter.createTables(data, strings)[0];
+    const pivotTable = converter.createTables(data, transform)[0];
     expect(pivotTable.cells[0][0]).toEqual({
       value: '',
       rowSpan: 1,
@@ -968,6 +956,7 @@ describe('Pivot table converter', () => {
       isHeader: true,
       cssClass: PivotTableConverter.rowAttributeHeaderClass,
       stickyTop: undefined,
+      stickyStart: undefined,
       background: '#ff0000',
     });
 
