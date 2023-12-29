@@ -1063,4 +1063,194 @@ describe('Pivot table converter', () => {
     expect(pivotTable.cells[7].slice(2).map(v => v.value)).toEqual(['1', '0', '1', '1', '1', '2', '4', '5']);
     expect(pivotTable.cells[8].slice(2).map(v => v.value)).toEqual(['3', '4', '7', '8', '2', '5', '15', '22']);
   });
+
+  it('should return table with rows expressions', () => {
+    const expression1Title = 'A + B'
+    const expression2Title = 'a2 * a3'
+
+    const data: LmrPivotData = {
+      data: [
+        {
+          valueTitles: ['V'],
+          rowHeaders: [
+            {
+              title: 'A',
+              children: [
+                {title: 'a1', targetIndex: 0, color: undefined, isValueHeader: false},
+                {title: 'a2', targetIndex: 1, color: undefined, isValueHeader: false},
+                {title: 'a3', targetIndex: 2, color: undefined, isValueHeader: false},
+              ],
+              color: undefined,
+              isValueHeader: false,
+            },
+            {
+              title: 'B',
+              children: [
+                {title: 'a2', targetIndex: 3, color: undefined, isValueHeader: false},
+                {title: 'a3', targetIndex: 4, color: undefined, isValueHeader: false},
+              ],
+              color: undefined,
+              isValueHeader: false,
+            },
+            {
+              title: 'C',
+              children: [
+                {title: 'a2', targetIndex: 5, color: undefined, isValueHeader: false},
+                {title: 'a3', targetIndex: 6, color: undefined, isValueHeader: false},
+                {title: 'a4', targetIndex: 7, color: undefined, isValueHeader: false},
+              ],
+              color: undefined,
+              isValueHeader: false,
+            },
+          ],
+          rowHeaderAttributes: [],
+          columnHeaders: [
+            {
+              title: 'X',
+              children: [
+                {title: 'x1', targetIndex: 0, color: undefined, isValueHeader: false},
+                {title: 'x2', targetIndex: 1, color: undefined, isValueHeader: false},
+              ],
+              color: undefined,
+              isValueHeader: false,
+            },
+            {
+              title: 'Y',
+              children: [
+                {title: 'x2', targetIndex: 2, color: undefined, isValueHeader: false},
+                {title: 'x3', targetIndex: 3, color: undefined, isValueHeader: false},
+                {title: 'x4', targetIndex: 4, color: undefined, isValueHeader: false},
+              ],
+              color: undefined,
+              isValueHeader: false,
+            },
+          ],
+          values: [
+            [4, 3, 5, 2, 8], // A -> a1
+            [9, 2, 4, 7, 2], // A -> a2
+            [2, 2, 4, 3, 1], // A -> a3
+            [3, 4, 7, 1, 3], // B -> a2
+            [4, 2, 3, 4, 2], // B -> a3
+            [8, 2, 2, 5, 3], // C -> a2
+            [7, 3, 1, 6, 5], // C -> a3
+            [2, 5, 4, 7, 8], // C -> a4
+          ],
+          columnHeaderAttributes: [],
+          dataResources: [],
+          rowsConfig: [
+            {showSums: true, expressions: [{operation: 'add', title: expression1Title, type: 'expression', operands: [{type: 'header', value: 'A'}, {type: 'header', value: 'B'}]}]},
+            {showSums: true, expressions: [{operation: 'multiply', title: expression2Title, type: 'expression', operands: [{type: 'header', value: 'a2'}, {type: 'header', value: 'a3'}]}]},
+          ],
+          columnsConfig: [{}, {}],
+        },
+      ],
+    };
+
+    const pivotTable = converter.createTables(data, transform)[0];
+
+    expect(pivotTable.cells.length).toEqual(18)
+
+    expect(pivotTable.cells[5][1]).toEqual({
+      value: undefined,
+      summary: expression2Title,
+      rowSpan: 1,
+      colSpan: 1,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY200,
+      label: undefined,
+      stickyStart: undefined,
+    });
+    expect(pivotTable.cells[6][0]).toEqual({
+      value: 'A',
+      summary: headerSummaryString,
+      rowSpan: 1,
+      colSpan: 2,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY200,
+      label: undefined,
+      stickyStart: undefined,
+    });
+    expect(pivotTable.cells[9][1]).toEqual({
+      value: undefined,
+      summary: expression2Title,
+      rowSpan: 1,
+      colSpan: 1,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY200,
+      label: undefined,
+      stickyStart: undefined,
+    });
+    expect(pivotTable.cells[11][0]).toEqual({
+      value: undefined,
+      summary: expression1Title,
+      rowSpan: 1,
+      colSpan: 2,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY100,
+      label: undefined,
+      stickyStart: undefined,
+    });
+
+    expect(pivotTable.cells[14][1]).toEqual({
+      value: undefined,
+      summary: expression2Title,
+      rowSpan: 1,
+      colSpan: 1,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY200,
+      label: undefined,
+      stickyStart: undefined,
+    });
+    expect(pivotTable.cells[16][0]).toEqual({
+      value: 'C',
+      summary: headerSummaryString,
+      rowSpan: 1,
+      colSpan: 2,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY200,
+      label: undefined,
+      stickyStart: undefined,
+    });
+    expect(pivotTable.cells[17][0]).toEqual({
+      value: undefined,
+      summary: summaryString,
+      rowSpan: 1,
+      colSpan: 2,
+      isHeader: true,
+      cssClass: PivotTableConverter.rowGroupHeaderClass,
+      constraint: undefined,
+      background: COLOR_GRAY100,
+      label: undefined,
+      stickyStart: undefined,
+    });
+
+    expect(pivotTable.cells[2].slice(2).map(v => v.value)).toEqual(['4', '3', '5', '2', '8']);
+    expect(pivotTable.cells[3].slice(2).map(v => v.value)).toEqual(['9', '2', '4', '7', '2']);
+    expect(pivotTable.cells[4].slice(2).map(v => v.value)).toEqual(['2', '2', '4', '3', '1']);
+    expect(pivotTable.cells[5].slice(2).map(v => v.value)).toEqual(['18', '4', '16', '21', '2']);
+    expect(pivotTable.cells[6].slice(2).map(v => v.value)).toEqual(['15', '7', '13', '12', '11']);
+    expect(pivotTable.cells[7].slice(2).map(v => v.value)).toEqual(['3', '4', '7', '1', '3']);
+    expect(pivotTable.cells[8].slice(2).map(v => v.value)).toEqual(['4', '2', '3', '4', '2']);
+    expect(pivotTable.cells[9].slice(2).map(v => v.value)).toEqual(['12', '8', '21', '4', '6']);
+    expect(pivotTable.cells[10].slice(2).map(v => v.value)).toEqual(['7', '6', '10', '5', '5']);
+    expect(pivotTable.cells[11].slice(2).map(v => v.value)).toEqual(['22', '13', '23', '17', '16']);
+    expect(pivotTable.cells[12].slice(2).map(v => v.value)).toEqual(['8', '2', '2', '5', '3']);
+    expect(pivotTable.cells[13].slice(2).map(v => v.value)).toEqual(['7', '3', '1', '6', '5']);
+    expect(pivotTable.cells[14].slice(2).map(v => v.value)).toEqual(['56', '6', '2', '30', '15']);
+    expect(pivotTable.cells[15].slice(2).map(v => v.value)).toEqual(['2', '5', '4', '7', '8']);
+    expect(pivotTable.cells[16].slice(2).map(v => v.value)).toEqual(['17', '10', '7', '18', '16']);
+    expect(pivotTable.cells[17].slice(2).map(v => v.value)).toEqual(['39', '23', '30', '35', '32']);
+  });
 });
