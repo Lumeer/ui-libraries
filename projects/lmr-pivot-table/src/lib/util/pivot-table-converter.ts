@@ -27,6 +27,7 @@ import {COLOR_GRAY100, COLOR_GRAY200, COLOR_GRAY300, COLOR_GRAY400, COLOR_GRAY50
 interface HeaderGroupInfo {
   background: string;
   indexes: number[];
+  expression?: LmrPivotDataHeaderExpression;
   level: number;
 }
 
@@ -189,6 +190,7 @@ export class PivotTableConverter {
         const background = this.getSummaryBackground(level);
         this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title)
         this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
+        rowGroupsInfo[expressionIndex] = {background, indexes: [], expression: expressions[i], level};
       }
     }
 
@@ -403,7 +405,7 @@ export class PivotTableConverter {
     for (let column = 0; column < this.columnsTransformationArray.length; column++) {
       const columnIndexInCells = this.columnsTransformationArray[column];
       if (isNotNullOrUndefined(columnIndexInCells)) {
-        const {value, dataResources} = this.evaluateExpression(expression, column);
+        const {value, dataResources} = this.evaluateExpression(expression, [column]);
         const valueIndex = column % this.data.valueTitles.length;
         const formattedValue = this.formatValueByConstraint(value, valueIndex);
         cells[rowIndexInCells][columnIndexInCells] = {
@@ -419,15 +421,15 @@ export class PivotTableConverter {
     }
   }
 
-  private evaluateExpression(expression: LmrPivotDataHeaderExpression, column: number): {value: number; dataResources: DataResource[] } {
+  private evaluateExpression(expression: LmrPivotDataHeaderExpression, columns: number[]): {value: number; dataResources: DataResource[] } {
     return (expression.operands || []).reduce((result, operand, index) => {
-      const {value, dataResources } = this.evaluateOperand(operand, column)
+      const {value, dataResources } = this.evaluateOperand(operand, columns)
       result.dataResources.push(...dataResources)
       switch (expression.operation) {
-        case "add":
+        case 'add':
           result.value += value
           break;
-        case "subtract":
+        case 'subtract':
           result.value = (index === 0 ? value : result.value - value)
           break;
         case 'multiply':
@@ -442,14 +444,14 @@ export class PivotTableConverter {
     } , {value: 0, dataResources: []})
   }
 
-  private evaluateOperand(operand: LmrPivotDataHeaderOperand, column: number): {value: number; dataResources: DataResource[] } {
+  private evaluateOperand(operand: LmrPivotDataHeaderOperand, columns: number[]): {value: number; dataResources: DataResource[] } {
     switch (operand.type) {
-      case "expression": return this.evaluateExpression(operand, column)
-      case "value": return {value: operand.value, dataResources: []}
-      case "header": {
+      case 'expression': return this.evaluateExpression(operand, columns)
+      case 'value': return {value: operand.value, dataResources: []}
+      case 'header': {
         const rows = getTargetIndexesForHeaders(operand.headers);
-        const {values, dataResources} = this.getGroupedValuesForRowsAndCols(rows, [column]);
-        const {value} = this.aggregateDataValues(values, [column]);
+        const {values, dataResources} = this.getGroupedValuesForRowsAndCols(rows, columns);
+        const {value} = this.aggregateDataValues(values, columns);
         return {value, dataResources}
       }
     }
@@ -665,20 +667,31 @@ export class PivotTableConverter {
     columnGroupsInfo: HeaderGroupInfo[]
   ) {
     const rowsCount = cells.length;
-    const columnsCount = (cells[0] && cells[0].length) || 0;
+    const columnsCount = cells[0]?.length || 0;
 
     for (let i = 0; i < rowGroupsInfo.length; i++) {
       const rowGroupInfo = rowGroupsInfo[i];
       if (rowGroupInfo) {
         for (let j = 0; j < columnGroupsInfo.length; j++) {
           if (columnGroupsInfo[j]) {
-            // it's enough to fill group values only from row side
-            const {rowsIndexes, columnsIndexes} = this.getValuesIndexesFromCellsIndexes(
-              rowGroupInfo.indexes,
-              columnGroupsInfo[j].indexes
-            );
-            const {values, dataResources} = this.getGroupedValuesForRowsAndCols(rowsIndexes, columnsIndexes);
-            const formattedValue = this.aggregateAndFormatDataValues(values, rowsIndexes, columnsIndexes);
+            const columns = columnGroupsInfo[j].indexes
+            let formattedValue: string;
+            let dataResources: DataResource[];
+            if (rowGroupInfo.expression) {
+              const result = this.evaluateExpression(rowGroupInfo.expression, columns);
+              const valueIndex = columns[0] % this.data.valueTitles.length;
+              formattedValue = this.formatValueByConstraint(result.value, valueIndex);
+              dataResources = result.dataResources
+            } else {
+              // it's enough to fill group values only from row side
+              const {rowsIndexes, columnsIndexes} = this.getValuesIndexesFromCellsIndexes(
+                rowGroupInfo.indexes,
+                columns
+              );
+              const result = this.getGroupedValuesForRowsAndCols(rowsIndexes, columnsIndexes);
+              formattedValue = this.aggregateAndFormatDataValues(result.values, rowsIndexes, columnsIndexes);
+              dataResources = result.dataResources
+            }
             cells[i][j] = {
               value: String(formattedValue),
               dataResources,
