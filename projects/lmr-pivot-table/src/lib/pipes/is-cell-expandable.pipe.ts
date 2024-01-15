@@ -18,15 +18,14 @@
  */
 import {Pipe, PipeTransform} from '@angular/core';
 
-import {isNotNullOrUndefined} from '@lumeer/utils';
-
 import {LmrPivotTableCell} from '../util/lmr-pivot-table';
+import {isCellExpandable} from '../util/lmr-pivot-state';
 
 @Pipe({
-  name: 'pivotTableCellHasValue',
+  name: 'isCellExpandable',
 })
-export class PivotTableCellHasValuePipe implements PipeTransform {
+export class IsCellExpandablePipe implements PipeTransform {
   public transform(cell: LmrPivotTableCell): boolean {
-    return isNotNullOrUndefined(cell.value) && String(cell.value).trim() !== '';
+    return isCellExpandable(cell);
   }
 }

@@ -1,23 +1,29 @@
-<ng-container *ngIf="{pivotTables: pivotTables$ | async, pivotData: pivotData$ | async} as data">
+<ng-container *ngIf="{pivotTables: pivotTables$ | async, pivotStates: pivotStates$ | async, pivotData: pivotData$ | async} as data">
   <ng-container *ngIf="data.pivotTables?.length && !(data.pivotData | pivotDataEmpty)">
-    <table *ngFor="let pivotTable of data.pivotTables; let first"
+    <table *ngFor="let pivotTable of data.pivotTables; let first; let tableIndex = index"
            class="table table-without-padding table-borderless table-md"
            [class.mt-4]="!first">
-      <tr *ngFor="let rowCells of pivotTable.cells; let rowIndex = index">
+      <tr *ngFor="let rowCells of pivotTable | filterVisibleCells:data.pivotStates[tableIndex]; let rowIndex = index">
 
         <ng-container *ngFor="let cell of rowCells; let cellIndex = index">
-          <td *ngIf="cell && {hasValue: cell | pivotTableCellHasValue} as cellData"
-              class="cell {{cell.constraint ? (cell.constraint.type | lowercase) : ''}} text-truncate"
-              [style.max-width.px]="300"
+          <td *ngIf="cell && {hasValue: cell | cellHasValue} as cellData"
+              class="cell position-relative {{cell.constraint ? (cell.constraint.type | lowercase) : ''}} text-truncate"
+              [class.expandable]="cell | isCellExpandable"
+              [class.expandable-rows]="cell | isCellRowsExpandable"
+              [class.expanded]="cell | isCellExpanded:tableIndex:pivotTable:data.pivotStates[tableIndex]"
               [class.sticky-start]="cell.stickyStart"
               [class.sticky-top]="cell.stickyTop"
               [rowSpan]="cell.rowSpan"
               [colSpan]="cell.colSpan"
-              [style.top.px]="cell.stickyTop ? (rowIndex * 40) : undefined"
-              [style.left.px]="cell.stickyStart ? (cellIndex * 150) : undefined"
+              [style.top.px]="cell.stickyTop ? (rowIndex * stickyColumnHeight) : undefined"
+              [style.left.px]="cell.stickyStart ? (cellIndex * stickyColumnWidth) : undefined"
+              [style.width.px]="cell.stickyStart ? (cell.colSpan * stickyColumnWidth) : undefined"
+              [style.max-width.px]="cell.stickyStart ? (cell.colSpan * stickyColumnWidth) : 300"
+              [style.min-width.px]="cell.stickyStart ? (cell.colSpan * stickyColumnWidth) : undefined"
               [ngClass]="cell.cssClass"
               [style.background]="cell.background"
-              [style.color]="cell.background && (cell.background | contrastColor)">
+              [style.color]="cell.background && (cell.background | contrastColor)"
+              (click)="onCellClick(cell, pivotTable, tableIndex, cellIndex)">
             <ng-container *ngIf="cell.summary">
               <ng-container *ngIf="cellData.hasValue">
                 <div class="d-flex align-items-center h-100">
@@ -35,13 +41,13 @@
                 </div>
               </ng-container>
               <ng-container *ngIf="!cellData.hasValue">
-                <span class="d-inline-block summary">{{cell.summary}}</span>
+                <span class="d-block" style="overflow: hidden; white-space: normal">{{cell.summary}}</span>
               </ng-container>
             </ng-container>
             <ng-container *ngIf="!cell.summary">
               <ng-container *ngIf="cellData.hasValue">
                 <ng-template #defaultTableCellTemplate>
-                  <span class="d-inline-block">
+                  <span class="d-block" style="overflow: hidden; white-space: normal">
                     {{ cell.value }}
                   </span>
                 </ng-template>

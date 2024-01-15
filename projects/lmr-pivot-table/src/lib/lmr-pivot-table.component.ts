@@ -7,6 +7,7 @@ import {asyncScheduler, BehaviorSubject, filter, map, Observable, tap, throttleT
 import {LmrPivotTable, LmrPivotTableCell} from './util/lmr-pivot-table';
 import {PivotTableConverter} from './util/pivot-table-converter';
 import {LmrEmptyTablesTemplateDirective, LmrTableCellTemplateDirective} from './directives/lmr-templates.directive';
+import {isCellExpandable, LmrPivotTableState, toggleExpanded} from './util/lmr-pivot-state';
 
 interface Data {
   collections: Collection[];
@@ -67,14 +68,17 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
 
   private readonly pivotTransformer = new PivotDataConverter();
   private readonly pivotTableConverter: PivotTableConverter = new PivotTableConverter();
+  public readonly stickyColumnWidth = 150;
+  public readonly stickyColumnHeight = 150;
 
-  private dataSubject = new BehaviorSubject<Data>(null);
+  private dataSubject$ = new BehaviorSubject<Data>(null);
 
   public pivotData$: Observable<LmrPivotData>;
   public pivotTables$: Observable<LmrPivotTable[]>;
+  public pivotStates$ = new BehaviorSubject<LmrPivotTableState[]>([]);
 
   public ngOnInit() {
-    const observable = this.dataSubject.pipe(filter(data => !!data));
+    const observable = this.dataSubject$.pipe(filter(data => !!data));
 
     this.pivotData$ = observable.pipe(
       throttleTime(200, asyncScheduler, {trailing: true, leading: true}),
@@ -101,7 +105,10 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges) {
-    this.dataSubject.next({
+    if (changes['config']) {
+      this.resetState();
+    }
+    this.dataSubject$.next({
       config: this.config,
       transform: this.transform,
       collections: this.collections,
@@ -112,4 +119,21 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
     });
   }
 
+  private resetState() {
+    this.pivotStates$.next([]);
+  }
+
+  public onCellClick(cell: LmrPivotTableCell, table: LmrPivotTable, tableIndex: number, columnIndex: number) {
+    if (isCellExpandable(cell)) {
+      const oldState = this.pivotStates$.value[tableIndex]
+      const newState = toggleExpanded(cell, columnIndex, table, oldState)
+      this.setState(tableIndex, newState)
+    }
+  }
+
+  private setState(index: number, state: LmrPivotTableState) {
+    const statesCopy = [...(this.pivotStates$.value || [])];
+    statesCopy.splice(index, 1, state)
+    this.pivotStates$.next(statesCopy)
+  }
 }

@@ -24,11 +24,47 @@
 .pivot-row-group-header-cell,
 .pivot-empty-cell {
   &.sticky-start {
-    position: sticky;
+    position: sticky !important;
     width: 150px;
     min-width: 150px;
     max-width: 150px !important;
     z-index: 9;
+  }
+}
+
+.pivot-row-header-cell,
+.pivot-row-group-header-cell {
+  &.expandable {
+    position: absolute;
+    cursor: pointer;
+    padding-right: 15px;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 5px;
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 5px solid #253746;
+      transform: translateY(-50%);
+    }
+
+    &.expanded::after {
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #253746;
+      border-bottom: 0;
+    }
+
+    &.expanded.expandable-rows::after {
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 0;
+      border-bottom: 5px solid #253746;
+    }
   }
 }
 
@@ -37,14 +73,14 @@
 .pivot-column-group-header-cell,
 .pivot-empty-cell {
   &.sticky-top {
-    position: sticky;
+    position: sticky !important;
     z-index: 10;
   }
 }
 
 .pivot-row-attribute-header-cell {
   &.sticky-top, &.sticky-start {
-    position: sticky;
+    position: sticky !important;
     z-index: 11;
   }
 }

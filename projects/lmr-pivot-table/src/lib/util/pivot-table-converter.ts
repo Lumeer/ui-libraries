@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {aggregateDataValues, Constraint, ConstraintData, DataAggregationType, DataResource, isValueAggregation, NumberConstraint, PercentageConstraint, UnknownConstraint,} from '@lumeer/data-filters';
-import {deepObjectCopy, isArray, isNotNullOrUndefined, isNullOrUndefined, isNumeric, shadeColor, toNumber, uniqueValues,} from '@lumeer/utils';
+import {createRange, deepObjectCopy, isArray, isNotNullOrUndefined, isNullOrUndefined, isNumeric, shadeColor, toNumber, uniqueValues,} from '@lumeer/utils';
 
 import {LmrPivotData, LmrPivotDataHeader, LmrPivotDataHeaderExpression, LmrPivotDataHeaderOperand, LmrPivotDimensionConfig, LmrPivotStemData} from './lmr-pivot-data';
 import {LmrPivotTable, LmrPivotTableCell} from './lmr-pivot-table';
@@ -166,6 +166,7 @@ export class PivotTableConverter {
         background: this.getHeaderBackground(header, level),
         constraint: header.constraint,
         label: header.attributeName,
+        childIndexes: createRange(currentIndex, currentIndex + rowSpan)
       };
 
       if (header.children) {
@@ -188,8 +189,8 @@ export class PivotTableConverter {
       for (let i = 0; i < expressions.length; i++) {
         const expressionIndex = currentIndex - (expressions.length - i)
         const background = this.getSummaryBackground(level);
-        this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title)
-        this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
+        const {indexes} = this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
+        this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title, indexes)
         rowGroupsInfo[expressionIndex] = {background, indexes: [], expression: expressions[i], level};
       }
     }
@@ -198,20 +199,17 @@ export class PivotTableConverter {
       const { title, summary } = this.formatSummaryHeader(parentHeader, level)
       const background = this.getSummaryBackground(level);
       const columnIndex = Math.max(level - 1, 0);
-      this.splitRowGroupHeader(cells, columnIndex, currentIndex, background, summary, title, parentHeader?.constraint, parentHeader?.attributeName)
+      this.splitRowGroupHeader(cells, columnIndex, currentIndex, background, summary, [], title, parentHeader?.constraint, parentHeader?.attributeName)
 
       const rowIndexes = getTargetIndexesForHeaders(headers);
-      const transformedRowIndexes = rowIndexes
-        .map(v => this.rowsTransformationArray[v])
-        .filter(v => isNotNullOrUndefined(v));
-
+      const transformedRowIndexes = this.transformRowIndexes(rowIndexes);
       rowGroupsInfo[currentIndex] = {background, indexes: transformedRowIndexes, level};
 
       this.fillCellsForGroupedRow(cells, rowIndexes, currentIndex, background);
     }
   }
 
-  private splitRowGroupHeader(cells: LmrPivotTableCell[][], columnIndex: number, currentIndex: number, background: string, summary: string, title?: string, constraint?: Constraint, label?: string) {
+  private splitRowGroupHeader(cells: LmrPivotTableCell[][], columnIndex: number, currentIndex: number, background: string, summary: string, rowIndexes: number[], title?: string, constraint?: Constraint, label?: string) {
     let colSpan = this.rowLevels - columnIndex;
     const stickyStart = this.isRowLevelSticky(columnIndex);
 
@@ -224,7 +222,7 @@ export class PivotTableConverter {
         constraint: undefined,
         label: undefined,
         cssClass: PivotTableConverter.rowGroupHeaderClass,
-        isHeader: true,
+        isSummary: true,
         rowSpan: 1,
         colSpan: colSpan - newColspan,
         background,
@@ -239,12 +237,13 @@ export class PivotTableConverter {
       constraint,
       label,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
-      isHeader: true,
+      isSummary: true,
       stickyStart,
       rowSpan: 1,
       colSpan,
       background,
       summary,
+      rowIndexes,
     };
   }
 
@@ -305,7 +304,6 @@ export class PivotTableConverter {
             rowSpan: 1,
             colSpan: 1,
             cssClass: PivotTableConverter.dataClass,
-            isHeader: false,
           };
         }
       }
@@ -389,7 +387,6 @@ export class PivotTableConverter {
           colSpan: 1,
           rowSpan: 1,
           cssClass: PivotTableConverter.groupDataClass,
-          isHeader: false,
           background,
         };
       }
@@ -401,11 +398,13 @@ export class PivotTableConverter {
     expression: LmrPivotDataHeaderExpression,
     rowIndexInCells: number,
     background: string
-  ) {
+  ):{indexes: number[]} {
+    let rowIndexes: number[] = [];
     for (let column = 0; column < this.columnsTransformationArray.length; column++) {
       const columnIndexInCells = this.columnsTransformationArray[column];
       if (isNotNullOrUndefined(columnIndexInCells)) {
-        const {value, dataResources} = this.evaluateExpression(expression, [column]);
+        const {value, dataResources, indexes} = this.evaluateExpression(expression, [column]);
+        rowIndexes = indexes
         const valueIndex = column % this.data.valueTitles.length;
         const formattedValue = this.formatValueByConstraint(value, valueIndex);
         cells[rowIndexInCells][columnIndexInCells] = {
@@ -414,17 +413,18 @@ export class PivotTableConverter {
           colSpan: 1,
           rowSpan: 1,
           cssClass: PivotTableConverter.groupDataClass,
-          isHeader: false,
           background,
         };
       }
     }
+    return {indexes: uniqueValues([...rowIndexes, rowIndexInCells])}
   }
 
-  private evaluateExpression(expression: LmrPivotDataHeaderExpression, columns: number[]): {value: number; dataResources: DataResource[] } {
+  private evaluateExpression(expression: LmrPivotDataHeaderExpression, columns: number[]): {value: number; dataResources: DataResource[]; indexes: number[]  } {
     return (expression.operands || []).reduce((result, operand, index) => {
-      const {value, dataResources } = this.evaluateOperand(operand, columns)
+      const {value, dataResources, indexes } = this.evaluateOperand(operand, columns)
       result.dataResources.push(...dataResources)
+      result.indexes.push(...indexes)
       switch (expression.operation) {
         case 'add':
           result.value += value
@@ -441,20 +441,26 @@ export class PivotTableConverter {
       }
 
       return result
-    } , {value: 0, dataResources: []})
+    } , {value: 0, dataResources: [], indexes: []})
   }
 
-  private evaluateOperand(operand: LmrPivotDataHeaderOperand, columns: number[]): {value: number; dataResources: DataResource[] } {
+  private evaluateOperand(operand: LmrPivotDataHeaderOperand, columns: number[]): {value: number; dataResources: DataResource[]; indexes: number[] } {
     switch (operand.type) {
       case 'expression': return this.evaluateExpression(operand, columns)
-      case 'value': return {value: operand.value, dataResources: []}
+      case 'value': return {value: operand.value, dataResources: [], indexes: []}
       case 'header': {
         const rows = getTargetIndexesForHeaders(operand.headers);
         const {values, dataResources} = this.getGroupedValuesForRowsAndCols(rows, columns);
         const {value} = this.aggregateDataValues(values, columns);
-        return {value, dataResources}
+        return {value, dataResources, indexes: this.transformRowIndexes(rows)}
       }
     }
+  }
+
+  private transformRowIndexes(rows: number[]): number[] {
+    return rows
+      .map(v => this.rowsTransformationArray[v])
+      .filter(v => isNotNullOrUndefined(v));
   }
 
   private getGroupedValuesForRowsAndCols(
@@ -544,7 +550,7 @@ export class PivotTableConverter {
         constraint: parentHeader?.constraint,
         label: parentHeader?.attributeName,
         cssClass: PivotTableConverter.columnGroupHeaderClass,
-        isHeader: true,
+        isSummary: true,
         stickyTop: this.isColumnLevelSticky(level),
         rowSpan: this.columnLevels - rowIndex - (shouldAddValueHeaders ? 1 : 0),
         colSpan: numberOfSums,
@@ -560,7 +566,7 @@ export class PivotTableConverter {
             cells[this.columnLevels - 1][columnIndexInCells] = {
               value: valueTitle,
               cssClass: PivotTableConverter.columnGroupHeaderClass,
-              isHeader: true,
+              isSummary: true,
               stickyTop: this.isColumnLevelSticky(level),
               rowSpan: 1,
               colSpan: 1,
@@ -600,7 +606,6 @@ export class PivotTableConverter {
           colSpan: 1,
           rowSpan: 1,
           cssClass: PivotTableConverter.groupDataClass,
-          isHeader: false,
           background,
         };
       }
@@ -644,7 +649,6 @@ export class PivotTableConverter {
             rowSpan: 1,
             colSpan: 1,
             cssClass: PivotTableConverter.dataClass,
-            isHeader: false,
           };
         }
       }
@@ -698,7 +702,6 @@ export class PivotTableConverter {
               colSpan: 1,
               rowSpan: 1,
               cssClass: PivotTableConverter.groupDataClass,
-              isHeader: false,
             };
           }
         }
@@ -769,7 +772,6 @@ export class PivotTableConverter {
             cssClass: isDataClass ? PivotTableConverter.dataClass : PivotTableConverter.groupDataClass,
             rowSpan: 1,
             colSpan: 1,
-            isHeader: false,
           };
         } else {
           matrix[i][j] = undefined;
@@ -785,7 +787,7 @@ export class PivotTableConverter {
           matrix[0][j] = {
             value: rowHeaderAttribute.title,
             cssClass: PivotTableConverter.rowAttributeHeaderClass,
-            isHeader: true,
+            isAttributeHeader: true,
             rowSpan: 1,
             colSpan: titleColSpan,
             stickyTop: this.isColumnLevelSticky(0),
@@ -797,7 +799,7 @@ export class PivotTableConverter {
             matrix[this.nonStickyColumnIndex][j] = {
               value: '',
               cssClass: PivotTableConverter.rowAttributeHeaderClass,
-              isHeader: true,
+              isAttributeHeader: true,
               rowSpan: 1,
               colSpan: this.columnLevels - titleColSpan,
               background: rowHeaderAttribute.color,

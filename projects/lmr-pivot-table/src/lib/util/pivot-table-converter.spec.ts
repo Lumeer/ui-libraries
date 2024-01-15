@@ -118,7 +118,6 @@ describe('Pivot table converter', () => {
       dataResources: [],
       rowSpan: 1,
       colSpan: 1,
-      isHeader: false,
       cssClass: PivotTableConverter.dataClass,
     });
     expect(pivotTable.cells[1][1]).toEqual({
@@ -126,7 +125,6 @@ describe('Pivot table converter', () => {
       dataResources: [],
       rowSpan: 1,
       colSpan: 1,
-      isHeader: false,
       cssClass: PivotTableConverter.dataClass,
     });
     expect(pivotTable.cells[1][2]).toEqual({
@@ -134,7 +132,6 @@ describe('Pivot table converter', () => {
       dataResources: [],
       rowSpan: 1,
       colSpan: 1,
-      isHeader: false,
       cssClass: PivotTableConverter.dataClass,
     });
   });
@@ -195,6 +192,7 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [0, 1]
     });
     expect(pivotTable.cells[0][1]).toEqual({
       value: 'a1',
@@ -206,6 +204,7 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [0]
     });
     expect(pivotTable.cells[1][0]).toEqual(undefined);
     expect(pivotTable.cells[1][1]).toEqual({
@@ -218,18 +217,20 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [1],
     });
     expect(pivotTable.cells[2][0]).toEqual({
       value: 'A',
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[2][1]).toEqual(undefined);
 
@@ -243,6 +244,7 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [3],
     });
     expect(pivotTable.cells[3][1]).toEqual({
       value: 'a1',
@@ -254,18 +256,20 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [3],
     });
     expect(pivotTable.cells[4][0]).toEqual({
       value: 'B',
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       background: COLOR_GRAY200,
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[4][1]).toEqual(undefined);
 
@@ -279,6 +283,7 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [5, 6, 7]
     });
     expect(pivotTable.cells[5][1]).toEqual({
       value: 'a2',
@@ -290,6 +295,7 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [5]
     });
     expect(pivotTable.cells[6][0]).toEqual(undefined);
     expect(pivotTable.cells[6][1]).toEqual({
@@ -302,6 +308,7 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [6]
     });
     expect(pivotTable.cells[7][0]).toEqual(undefined);
     expect(pivotTable.cells[7][1]).toEqual({
@@ -314,18 +321,20 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [7]
     });
     expect(pivotTable.cells[8][0]).toEqual({
       value: 'C',
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[8][1]).toEqual(undefined);
     expect(pivotTable.cells[9][0]).toEqual({
@@ -333,12 +342,13 @@ describe('Pivot table converter', () => {
       summary: summaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY100,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[9][1]).toEqual(undefined);
 
@@ -419,7 +429,7 @@ describe('Pivot table converter', () => {
       summary: headerSummaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
@@ -467,7 +477,7 @@ describe('Pivot table converter', () => {
       summary: headerSummaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
@@ -515,7 +525,7 @@ describe('Pivot table converter', () => {
       summary: headerSummaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
@@ -528,7 +538,7 @@ describe('Pivot table converter', () => {
       summary: summaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY100,
@@ -606,7 +616,7 @@ describe('Pivot table converter', () => {
       value: 'H1',
       rowSpan: 1,
       colSpan: 1,
-      isHeader: true,
+      isAttributeHeader: true,
       cssClass: PivotTableConverter.rowAttributeHeaderClass,
       stickyTop: undefined,
       stickyStart: undefined,
@@ -822,9 +832,9 @@ describe('Pivot table converter', () => {
     expect(pivotTable.cells[0][9]).toEqual({
       value: undefined,
       summary: summaryString,
-      isHeader: true,
       colSpan: 3,
       rowSpan: 1,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY100,
@@ -834,27 +844,27 @@ describe('Pivot table converter', () => {
 
     expect(pivotTable.cells[1][9]).toEqual({
       value: 'X',
-      isHeader: true,
       colSpan: 1,
       rowSpan: 1,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       background: COLOR_GRAY100,
       stickyTop: undefined,
     });
     expect(pivotTable.cells[1][10]).toEqual({
       value: 'Y',
-      isHeader: true,
       colSpan: 1,
       rowSpan: 1,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       background: COLOR_GRAY100,
       stickyTop: undefined,
     });
     expect(pivotTable.cells[1][11]).toEqual({
       value: 'Z',
-      isHeader: true,
       colSpan: 1,
       rowSpan: 1,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       background: COLOR_GRAY100,
       stickyTop: undefined,
@@ -953,7 +963,7 @@ describe('Pivot table converter', () => {
       value: 'H2',
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isAttributeHeader: true,
       cssClass: PivotTableConverter.rowAttributeHeaderClass,
       stickyTop: undefined,
       stickyStart: undefined,
@@ -965,12 +975,13 @@ describe('Pivot table converter', () => {
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[6][0]).toEqual({
       value: 'B',
@@ -982,18 +993,20 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
+      childIndexes: [6, 7],
     });
     expect(pivotTable.cells[8][0]).toEqual({
       value: 'B',
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
 
     expect(pivotTable.cells[0][2]).toEqual({
@@ -1023,7 +1036,7 @@ describe('Pivot table converter', () => {
       summary: headerSummaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
@@ -1035,7 +1048,7 @@ describe('Pivot table converter', () => {
       summary: headerSummaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
@@ -1047,7 +1060,7 @@ describe('Pivot table converter', () => {
       summary: summaryString,
       rowSpan: 2,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.columnGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY100,
@@ -1155,48 +1168,52 @@ describe('Pivot table converter', () => {
       summary: expression2Title,
       rowSpan: 1,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [3, 4, 5],
     });
     expect(pivotTable.cells[6][0]).toEqual({
       value: 'A',
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[9][1]).toEqual({
       value: undefined,
       summary: expression2Title,
       rowSpan: 1,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [7, 8, 9],
     });
     expect(pivotTable.cells[11][0]).toEqual({
       value: undefined,
       summary: expression1Title,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY100,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [2, 3, 4, 7, 8, 11],
     });
 
     expect(pivotTable.cells[14][1]).toEqual({
@@ -1204,36 +1221,39 @@ describe('Pivot table converter', () => {
       summary: expression2Title,
       rowSpan: 1,
       colSpan: 1,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [12, 13, 14],
     });
     expect(pivotTable.cells[16][0]).toEqual({
       value: 'C',
       summary: headerSummaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY200,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
     expect(pivotTable.cells[17][0]).toEqual({
       value: undefined,
       summary: summaryString,
       rowSpan: 1,
       colSpan: 2,
-      isHeader: true,
+      isSummary: true,
       cssClass: PivotTableConverter.rowGroupHeaderClass,
       constraint: undefined,
       background: COLOR_GRAY100,
       label: undefined,
       stickyStart: undefined,
+      rowIndexes: [],
     });
 
     expect(pivotTable.cells[2].slice(2).map(v => v.value)).toEqual(['4', '3', '5', '2', '8']);

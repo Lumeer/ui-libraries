@@ -16,27 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {Constraint, DataResource} from '@lumeer/data-filters';
+import {Pipe, PipeTransform} from '@angular/core';
 
-export interface LmrPivotTable {
-  cells: LmrPivotTableCell[][];
-}
+import {LmrPivotTableCell} from '../util/lmr-pivot-table';
+import {isCellExpandable, isCellRowsExpandable} from '../util/lmr-pivot-state';
 
-export interface LmrPivotTableCell {
-  value: any;
-  dataResources?: DataResource[];
-  constraint?: Constraint;
-  summary?: string;
-  rowSpan: number;
-  colSpan: number;
-  cssClass: string;
-  isHeader?: boolean;
-  isAttributeHeader?: boolean;
-  isSummary?: boolean;
-  background?: string;
-  label?: string;
-  stickyTop?: boolean;
-  stickyStart?: boolean;
-  rowIndexes?: number[];
-  childIndexes?: number[];
+@Pipe({
+  name: 'isCellRowsExpandable',
+})
+export class IsCellRowsExpandablePipe implements PipeTransform {
+  public transform(cell: LmrPivotTableCell): boolean {
+    return isCellRowsExpandable(cell);
+  }
 }
