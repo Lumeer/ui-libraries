@@ -31,8 +31,11 @@ export class LmrSimplePivotTableComponent implements OnChanges {
   @Input()
   public locale: LanguageTag;
 
+  @Input()
+  public initiallyCollapsed: boolean;
+
   @Output()
-  public cellClick = new EventEmitter<LmrPivotTableCell>();
+  public cellClick = new EventEmitter<{cell: LmrPivotTableCell; tableIndex: number; rowIndex: number; columnIndex: number }>();
 
   @Output()
   public pivotDataChange = new EventEmitter<LmrPivotData>();

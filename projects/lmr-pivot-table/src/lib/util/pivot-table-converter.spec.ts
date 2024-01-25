@@ -119,6 +119,7 @@ describe('Pivot table converter', () => {
       rowSpan: 1,
       colSpan: 1,
       cssClass: PivotTableConverter.dataClass,
+      isValue: true,
     });
     expect(pivotTable.cells[1][1]).toEqual({
       value: '20',
@@ -126,6 +127,7 @@ describe('Pivot table converter', () => {
       rowSpan: 1,
       colSpan: 1,
       cssClass: PivotTableConverter.dataClass,
+      isValue: true,
     });
     expect(pivotTable.cells[1][2]).toEqual({
       value: '30',
@@ -133,6 +135,7 @@ describe('Pivot table converter', () => {
       rowSpan: 1,
       colSpan: 1,
       cssClass: PivotTableConverter.dataClass,
+      isValue: true,
     });
   });
 

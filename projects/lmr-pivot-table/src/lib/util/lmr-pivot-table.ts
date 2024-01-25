@@ -30,6 +30,7 @@ export interface LmrPivotTableCell {
   rowSpan: number;
   colSpan: number;
   cssClass: string;
+  isValue?: boolean;
   isHeader?: boolean;
   isAttributeHeader?: boolean;
   isSummary?: boolean;
@@ -39,4 +40,5 @@ export interface LmrPivotTableCell {
   stickyStart?: boolean;
   rowIndexes?: number[];
   childIndexes?: number[];
+  originalRowIndex?: number;
 }

@@ -7,7 +7,8 @@ import {asyncScheduler, BehaviorSubject, filter, map, Observable, tap, throttleT
 import {LmrPivotTable, LmrPivotTableCell} from './util/lmr-pivot-table';
 import {PivotTableConverter} from './util/pivot-table-converter';
 import {LmrEmptyTablesTemplateDirective, LmrTableCellTemplateDirective} from './directives/lmr-templates.directive';
-import {isCellExpandable, LmrPivotTableState, toggleExpanded} from './util/lmr-pivot-state';
+import {collapseAllCells, isCellExpandable, LmrPivotTableState, toggleExpanded} from './util/lmr-pivot-state';
+import {isPivotConfigChanged} from './util/pivot-util';
 
 interface Data {
   collections: Collection[];
@@ -54,8 +55,11 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   @Input()
   public tableCellTemplateInput: TemplateRef<any>;
 
+  @Input()
+  public initiallyCollapsed: boolean;
+
   @Output()
-  public cellClick = new EventEmitter<LmrPivotTableCell>();
+  public cellClick = new EventEmitter<{cell: LmrPivotTableCell; tableIndex: number; rowIndex: number; columnIndex: number }>();
 
   @Output()
   public pivotDataChange = new EventEmitter<LmrPivotData>();
@@ -63,8 +67,8 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   @Output()
   public pivotTablesChange = new EventEmitter<LmrPivotTable[]>();
 
-  @ContentChild(LmrEmptyTablesTemplateDirective, { read: TemplateRef }) emptyTablesTemplate: TemplateRef<any>;
-  @ContentChild(LmrTableCellTemplateDirective, { read: TemplateRef }) tableCellTemplate: TemplateRef<any>;
+  @ContentChild(LmrEmptyTablesTemplateDirective, {read: TemplateRef}) emptyTablesTemplate: TemplateRef<any>;
+  @ContentChild(LmrTableCellTemplateDirective, {read: TemplateRef}) tableCellTemplate: TemplateRef<any>;
 
   private readonly pivotTransformer = new PivotDataConverter();
   private readonly pivotTableConverter: PivotTableConverter = new PivotTableConverter();
@@ -72,6 +76,7 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   public readonly stickyColumnHeight = 150;
 
   private dataSubject$ = new BehaviorSubject<Data>(null);
+  private currentTables: LmrPivotTable[];
 
   public pivotData$: Observable<LmrPivotData>;
   public pivotTables$: Observable<LmrPivotTable[]>;
@@ -83,13 +88,26 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
     this.pivotData$ = observable.pipe(
       throttleTime(200, asyncScheduler, {trailing: true, leading: true}),
       map(data => this.handleData(data)),
-      tap(data => this.pivotDataChange.emit(data)),
+      tap(data => this.onPivotDataChange(data)),
     );
 
     this.pivotTables$ = this.pivotData$.pipe(
       map(data => this.pivotTableConverter.createTables(data, this.transform)),
-      tap(tables => this.pivotTablesChange.emit(tables))
+      tap(tables => this.onPivotTablesChange(tables))
     );
+  }
+
+  private onPivotDataChange(data: LmrPivotData) {
+    this.pivotDataChange.emit(data);
+  }
+
+  private onPivotTablesChange(tables: LmrPivotTable[]) {
+    if (this.initiallyCollapsed && tablesAreVeryDifferent(this.currentTables, tables)) {
+      this.pivotStates$.next(tables.map(table => collapseAllCells(table)));
+    }
+
+    this.currentTables = tables;
+    this.pivotTablesChange.emit(tables);
   }
 
   private handleData(data: Data): LmrPivotData {
@@ -105,7 +123,7 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges) {
-    if (changes['config']) {
+    if (shouldResetState(changes)) {
       this.resetState();
     }
     this.dataSubject$.next({
@@ -120,14 +138,17 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   }
 
   private resetState() {
-    this.pivotStates$.next([]);
+    // this.pivotStates$.next([]);
   }
 
-  public onCellClick(cell: LmrPivotTableCell, table: LmrPivotTable, tableIndex: number, columnIndex: number) {
+  public onCellClick(cell: LmrPivotTableCell, row: LmrPivotTableCell[], tableIndex: number, rowIndex: number, columnIndex: number) {
     if (isCellExpandable(cell)) {
       const oldState = this.pivotStates$.value[tableIndex]
-      const newState = toggleExpanded(cell, columnIndex, table, oldState)
+      const newState = toggleExpanded(cell, columnIndex, oldState)
       this.setState(tableIndex, newState)
+    } else if (cell?.isHeader || cell?.isValue) {
+      const headerCell = cell.isHeader ? cell : row.find(c => c.isHeader)
+      this.cellClick.emit({cell, tableIndex, rowIndex: headerCell?.originalRowIndex || rowIndex, columnIndex})
     }
   }
 
@@ -136,4 +157,21 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
     statesCopy.splice(index, 1, state)
     this.pivotStates$.next(statesCopy)
   }
+}
+
+function shouldResetState(changes: SimpleChanges): boolean {
+  if (changes['config']) {
+    const previousValue = changes['config'].previousValue as LmrPivotConfig
+    const currentValue = changes['config'].currentValue as LmrPivotConfig
+    return isPivotConfigChanged(previousValue, currentValue)
+  }
+  return false;
+}
+
+function tablesAreVeryDifferent(t1: LmrPivotTable[], t2: LmrPivotTable[]): boolean {
+  if ((t1 || []).length !== (t2 || []).length) {
+    return true
+  }
+  // row numbers are different
+  return (t1 || []).some((t, index) => t.cells?.length !== t2[index].cells?.length);
 }

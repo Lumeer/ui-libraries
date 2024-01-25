@@ -19,7 +19,7 @@
 
 import {cleanQueryAttribute, Query, QueryStem} from '@lumeer/data-filters';
 import {deepObjectsEquals, hex2rgba} from '@lumeer/utils';
-import {LmrPivotAttribute, LmrPivotConfig, LmrPivotConfigVersion, LmrPivotStemConfig} from './lmr-pivot-config';
+import {LmrPivotAttribute, LmrPivotConfig, LmrPivotConfigVersion, LmrPivotRowAttribute, LmrPivotStemConfig} from './lmr-pivot-config';
 import {COLOR_LIGHT, COLOR_PRIMARY} from './lmr-pivot-constants';
 
 export function pivotAttributesAreSame(a1: LmrPivotAttribute, a2: LmrPivotAttribute): boolean {
@@ -27,11 +27,11 @@ export function pivotAttributesAreSame(a1: LmrPivotAttribute, a2: LmrPivotAttrib
 }
 
 export function isPivotConfigChanged(viewConfig: LmrPivotConfig, currentConfig: LmrPivotConfig): boolean {
-  if (!!viewConfig.mergeTables !== !!currentConfig.mergeTables && (currentConfig.stemsConfigs || []).length > 1) {
+  if (!!viewConfig?.mergeTables !== !!currentConfig?.mergeTables && (currentConfig?.stemsConfigs || []).length > 1) {
     return true;
   }
 
-  return pivotStemConfigsHasChanged(viewConfig.stemsConfigs || [], currentConfig.stemsConfigs || []);
+  return pivotStemConfigsHasChanged(viewConfig?.stemsConfigs || [], currentConfig?.stemsConfigs || []);
 }
 
 function pivotStemConfigsHasChanged(s1: LmrPivotStemConfig[], s2: LmrPivotStemConfig[]): boolean {
@@ -44,10 +44,14 @@ function pivotStemConfigsHasChanged(s1: LmrPivotStemConfig[], s2: LmrPivotStemCo
 
 function pivotStemConfigHasChanged(s1: LmrPivotStemConfig, s2: LmrPivotStemConfig): boolean {
   return (
-    !deepObjectsEquals(s1.rowAttributes || [], s2.rowAttributes || []) ||
+    !deepObjectsEquals(cleanRowAttributes(s1.rowAttributes), cleanRowAttributes(s2.rowAttributes)) ||
     !deepObjectsEquals(s1.columnAttributes || [], s2.columnAttributes || []) ||
     !deepObjectsEquals(s1.valueAttributes || [], s2.valueAttributes || [])
   );
+}
+
+function cleanRowAttributes(attrs: LmrPivotRowAttribute[]): LmrPivotRowAttribute[] {
+  return (attrs || []).map(attr => ({...attr, showHeader: undefined}))
 }
 
 export function createDefaultPivotConfig(query: Query): LmrPivotConfig {

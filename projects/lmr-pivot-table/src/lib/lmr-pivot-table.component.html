@@ -10,7 +10,7 @@
               class="cell position-relative {{cell.constraint ? (cell.constraint.type | lowercase) : ''}} text-truncate"
               [class.expandable]="cell | isCellExpandable"
               [class.expandable-rows]="cell | isCellRowsExpandable"
-              [class.expanded]="cell | isCellExpanded:tableIndex:pivotTable:data.pivotStates[tableIndex]"
+              [class.expanded]="cell | isCellExpanded:cellIndex:data.pivotStates[tableIndex]"
               [class.sticky-start]="cell.stickyStart"
               [class.sticky-top]="cell.stickyTop"
               [rowSpan]="cell.rowSpan"
@@ -23,7 +23,7 @@
               [ngClass]="cell.cssClass"
               [style.background]="cell.background"
               [style.color]="cell.background && (cell.background | contrastColor)"
-              (click)="onCellClick(cell, pivotTable, tableIndex, cellIndex)">
+              (click)="onCellClick(cell, rowCells, tableIndex, rowIndex, cellIndex)">
             <ng-container *ngIf="cell.summary">
               <ng-container *ngIf="cellData.hasValue">
                 <div class="d-flex align-items-center h-100">
@@ -47,7 +47,7 @@
             <ng-container *ngIf="!cell.summary">
               <ng-container *ngIf="cellData.hasValue">
                 <ng-template #defaultTableCellTemplate>
-                  <span class="d-block" style="overflow: hidden; white-space: normal">
+                  <span class="d-block" style="overflow: hidden; white-space: normal; cursor: pointer">
                     {{ cell.value }}
                   </span>
                 </ng-template>

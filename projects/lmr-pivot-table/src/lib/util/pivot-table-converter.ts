@@ -304,6 +304,7 @@ export class PivotTableConverter {
             rowSpan: 1,
             colSpan: 1,
             cssClass: PivotTableConverter.dataClass,
+            isValue: true,
           };
         }
       }
@@ -388,6 +389,7 @@ export class PivotTableConverter {
           rowSpan: 1,
           cssClass: PivotTableConverter.groupDataClass,
           background,
+          isValue: true,
         };
       }
     }
@@ -414,6 +416,7 @@ export class PivotTableConverter {
           rowSpan: 1,
           cssClass: PivotTableConverter.groupDataClass,
           background,
+          isValue: true,
         };
       }
     }
@@ -607,6 +610,7 @@ export class PivotTableConverter {
           rowSpan: 1,
           cssClass: PivotTableConverter.groupDataClass,
           background,
+          isValue: true,
         };
       }
     }
@@ -649,6 +653,7 @@ export class PivotTableConverter {
             rowSpan: 1,
             colSpan: 1,
             cssClass: PivotTableConverter.dataClass,
+            isValue: true,
           };
         }
       }
@@ -702,6 +707,7 @@ export class PivotTableConverter {
               colSpan: 1,
               rowSpan: 1,
               cssClass: PivotTableConverter.groupDataClass,
+              isValue: true,
             };
           }
         }
@@ -772,6 +778,7 @@ export class PivotTableConverter {
             cssClass: isDataClass ? PivotTableConverter.dataClass : PivotTableConverter.groupDataClass,
             rowSpan: 1,
             colSpan: 1,
+            isValue: true,
           };
         } else {
           matrix[i][j] = undefined;

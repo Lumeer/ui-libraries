@@ -25,8 +25,10 @@ import {areCellsSame, LmrPivotTableState} from '../util/lmr-pivot-state';
   name: 'isCellExpanded',
 })
 export class IsCellExpandedPipe implements PipeTransform {
-  public transform(cell: LmrPivotTableCell, columnIndex: number, table: LmrPivotTable, state: LmrPivotTableState): boolean {
-    const tableRowIndex = table.cells.findIndex(row => areCellsSame(row[columnIndex], cell))
-    return state?.cells?.[tableRowIndex]?.[columnIndex]?.expanded
+  public transform(cell: LmrPivotTableCell, columnIndex: number, state: LmrPivotTableState): boolean {
+    if (cell.originalRowIndex) {
+      return !state?.cells?.[cell.originalRowIndex]?.[columnIndex]?.collapsed
+    }
+    return false
   }
 }

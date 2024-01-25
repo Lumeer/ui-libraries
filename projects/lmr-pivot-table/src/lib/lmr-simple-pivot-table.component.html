@@ -6,6 +6,8 @@
                  [collections]="[collection]"
                  [emptyTablesTemplateInput]="emptyTablesTemplate"
                  [tableCellTemplateInput]="tableCellTemplate"
+                 [initiallyCollapsed]="initiallyCollapsed"
+                 (cellClick)="cellClick.emit($event)"
                  (pivotDataChange)="pivotDataChange.emit($event)"
                  (pivotTablesChange)="pivotTablesChange.emit($event)">
 </lmr-pivot-table>
