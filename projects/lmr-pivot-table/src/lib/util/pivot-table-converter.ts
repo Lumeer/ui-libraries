@@ -166,7 +166,7 @@ export class PivotTableConverter {
         background: this.getHeaderBackground(header, level),
         constraint: header.constraint,
         label: header.attributeName,
-        childIndexes: createRange(currentIndex, currentIndex + rowSpan)
+        childIndexes: createRange(currentIndex, currentIndex + (header.children?.length || 1))
       };
 
       if (header.children) {

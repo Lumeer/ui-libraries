@@ -58,7 +58,7 @@ export function filterVisibleCells(cells: LmrPivotTableCell[][], state: LmrPivot
     }
 
     if (isRowVisible(index, cellsChildIndexesMap, 0, state)) {
-      if (isCellColumnsExpandable(firstCell)) {
+      if (row.some(cell => isCellColumnsExpandable(cell))) {
         const isCollapsed = state?.[index]?.[0]?.collapsed
         if (isCollapsed) {
           const firstDataHeaderIndex = takeIf(row.findIndex(cell => cell.isValue), result => result >= 0) ?? 1
@@ -74,8 +74,8 @@ export function filterVisibleCells(cells: LmrPivotTableCell[][], state: LmrPivot
           }
           currentRows.push(rowCopy)
         } else {
-          const nestedCells = sliceMatrix(cells, index, index + firstCell.childIndexes.length - 1, 1, cells[0].length - 1)
-          const nestedState = sliceMatrix(state, index, index + firstCell.childIndexes.length - 1, 1, cells[0].length - 1)
+          const nestedCells = sliceMatrix(cells, index, index + firstCell.rowSpan - 1, 1, cells[0].length - 1)
+          const nestedState = sliceMatrix(state, index, index + firstCell.rowSpan - 1, 1, cells[0].length - 1)
           const nestedFilteredRows = filterVisibleCells(nestedCells, nestedState, originalRowIndex)
           const changedCell = {
             ...row[0],
@@ -87,6 +87,9 @@ export function filterVisibleCells(cells: LmrPivotTableCell[][], state: LmrPivot
         }
       } else {
         currentRows.push(setOriginalRowIndexForHeaders(row, originalRowIndex))
+        for (let i = 1; i < firstCell.rowSpan; i++) {
+          currentRows.push(setOriginalRowIndexForHeaders(cells[index + i], originalRowIndex + i))
+        }
       }
     }
 
@@ -98,10 +101,13 @@ function setOriginalRowIndexForHeaders(row: LmrPivotTableCell[], originalRowInde
   const newRow = [];
   for (let i = 0; i < row.length; i++) {
     const cell = row[i];
-    if (!cell || cell.isValue) {
+    if (!cell) {
+      newRow.push(cell);
+    } else if (cell.isValue) {
       return [...newRow, ...row.slice(i)];
+    } else {
+      newRow.push({...cell, originalRowIndex})
     }
-    newRow.push({...cell, originalRowIndex})
   }
   return newRow
 }
