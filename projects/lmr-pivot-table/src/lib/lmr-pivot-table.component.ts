@@ -73,7 +73,7 @@ export class LmrPivotTableComponent implements OnInit, OnChanges {
   private readonly pivotTransformer = new PivotDataConverter();
   private readonly pivotTableConverter: PivotTableConverter = new PivotTableConverter();
   public readonly stickyColumnWidth = 150;
-  public readonly stickyColumnHeight = 150;
+  public readonly stickyColumnHeight = 40;
 
   private dataSubject$ = new BehaviorSubject<Data>(null);
   private currentTables: LmrPivotTable[];

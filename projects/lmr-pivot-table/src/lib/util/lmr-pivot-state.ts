@@ -54,6 +54,9 @@ export function filterVisibleCells(cells: LmrPivotTableCell[][], state: LmrPivot
     const originalRowIndex = parentIndex + index
     if (firstCell.isAttributeHeader || firstCell.isSummary || firstCell.isValue) {
       currentRows.push(setOriginalRowIndexForHeaders(row, originalRowIndex))
+      for (let i = 1; i < firstCell.rowSpan; i++) {
+        currentRows.push(setOriginalRowIndexForHeaders(cells[index + i], originalRowIndex + i))
+      }
       return currentRows
     }
 

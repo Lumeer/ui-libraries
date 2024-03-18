@@ -790,25 +790,25 @@ export class PivotTableConverter {
       for (let j = 0; j < this.rowLevels; j++) {
         const rowHeaderAttribute = this.data.rowHeaderAttributes[j];
         if (rowHeaderAttribute) {
-          const titleColSpan = this.nonStickyColumnIndex || this.columnLevels
+          const titleRowSpan = this.nonStickyColumnIndex || this.columnLevels
           matrix[0][j] = {
             value: rowHeaderAttribute.title,
             cssClass: PivotTableConverter.rowAttributeHeaderClass,
             isAttributeHeader: true,
-            rowSpan: 1,
-            colSpan: titleColSpan,
+            rowSpan: titleRowSpan,
+            colSpan: 1,
             stickyTop: this.isColumnLevelSticky(0),
             stickyStart: this.isRowLevelSticky(j),
             background: rowHeaderAttribute.color,
           };
 
-          if (this.columnLevels - titleColSpan > 0) {
+          if (this.columnLevels - titleRowSpan > 0) {
             matrix[this.nonStickyColumnIndex][j] = {
               value: '',
               cssClass: PivotTableConverter.rowAttributeHeaderClass,
               isAttributeHeader: true,
-              rowSpan: 1,
-              colSpan: this.columnLevels - titleColSpan,
+              rowSpan: this.columnLevels - titleRowSpan,
+              colSpan: 1,
               background: rowHeaderAttribute.color,
               stickyStart: this.isRowLevelSticky(j),
             };
