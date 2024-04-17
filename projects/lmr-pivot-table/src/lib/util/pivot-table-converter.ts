@@ -680,40 +680,45 @@ export class PivotTableConverter {
 
     for (let i = 0; i < rowGroupsInfo.length; i++) {
       const rowGroupInfo = rowGroupsInfo[i];
-      if (rowGroupInfo) {
-        for (let j = 0; j < columnGroupsInfo.length; j++) {
-          if (columnGroupsInfo[j]) {
-            const columns = columnGroupsInfo[j].indexes
-            let formattedValue: string;
-            let dataResources: DataResource[];
-            if (rowGroupInfo.expression) {
-              const result = this.evaluateExpression(rowGroupInfo.expression, columns);
-              const valueIndex = columns[0] % this.data.valueTitles.length;
-              formattedValue = this.formatValueByConstraint(result.value, valueIndex);
-              dataResources = result.dataResources
-            } else {
-              // it's enough to fill group values only from row side
-              const {rowsIndexes, columnsIndexes} = this.getValuesIndexesFromCellsIndexes(
-                rowGroupInfo.indexes,
-                columns
-              );
-              const result = this.getGroupedValuesForRowsAndCols(rowsIndexes, columnsIndexes);
-              formattedValue = this.aggregateAndFormatDataValues(result.values, rowsIndexes, columnsIndexes);
-              dataResources = result.dataResources
-            }
-            cells[i][j] = {
-              value: String(formattedValue),
-              dataResources,
-              colSpan: 1,
-              rowSpan: 1,
-              cssClass: PivotTableConverter.groupDataClass,
-              isValue: true,
-            };
-          }
+      if (!rowGroupInfo) {
+        continue
+      }
+
+      for (let j = 0; j < columnGroupsInfo.length; j++) {
+        if (!columnGroupsInfo[j]) {
+          continue
         }
 
-        this.fillRowWithColor(cells, i, rowGroupInfo, columnsCount);
+        const columns = columnGroupsInfo[j].indexes
+        const {rowsIndexes, columnsIndexes} = this.getValuesIndexesFromCellsIndexes(
+          rowGroupInfo.indexes,
+          columns
+        );
+        let formattedValue: string;
+        let dataResources: DataResource[];
+        if (rowGroupInfo.expression) {
+          const result = this.evaluateExpression(rowGroupInfo.expression, columnsIndexes);
+          const valueIndex = columnsIndexes[0] % this.data.valueTitles.length;
+          formattedValue = this.formatValueByConstraint(result.value, valueIndex);
+          dataResources = result.dataResources
+        } else {
+          // it's enough to fill group values only from row side
+          const result = this.getGroupedValuesForRowsAndCols(rowsIndexes, columnsIndexes);
+          formattedValue = this.aggregateAndFormatDataValues(result.values, rowsIndexes, columnsIndexes);
+          dataResources = result.dataResources
+        }
+        cells[i][j] = {
+          value: String(formattedValue),
+          dataResources,
+          colSpan: 1,
+          rowSpan: 1,
+          cssClass: PivotTableConverter.groupDataClass,
+          isValue: true,
+        };
+
       }
+
+      this.fillRowWithColor(cells, i, rowGroupInfo, columnsCount);
     }
 
     for (let j = 0; j < columnGroupsInfo.length; j++) {
