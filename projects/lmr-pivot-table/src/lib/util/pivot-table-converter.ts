@@ -166,7 +166,8 @@ export class PivotTableConverter {
         background: this.getHeaderBackground(header, level),
         constraint: header.constraint,
         label: header.attributeName,
-        childIndexes: createRange(currentIndex, currentIndex + (header.children?.length || 1))
+        childIndexes: createRange(currentIndex, currentIndex + (header.children?.length || 1)),
+        expandable: true,
       };
 
       if (header.children) {
@@ -190,7 +191,7 @@ export class PivotTableConverter {
         const expressionIndex = currentIndex - (expressions.length - i)
         const background = this.getSummaryBackground(level);
         const {indexes} = this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
-        this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title, indexes)
+        this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title, indexes, expressions[i].expandable)
         rowGroupsInfo[expressionIndex] = {background, indexes: [], expression: expressions[i], level};
       }
     }
@@ -199,7 +200,7 @@ export class PivotTableConverter {
       const { title, summary } = this.formatSummaryHeader(parentHeader, level)
       const background = this.getSummaryBackground(level);
       const columnIndex = Math.max(level - 1, 0);
-      this.splitRowGroupHeader(cells, columnIndex, currentIndex, background, summary, [], title, parentHeader?.constraint, parentHeader?.attributeName)
+      this.splitRowGroupHeader(cells, columnIndex, currentIndex, background, summary, [], false, title, parentHeader?.constraint, parentHeader?.attributeName)
 
       const rowIndexes = getTargetIndexesForHeaders(headers);
       const transformedRowIndexes = this.transformRowIndexes(rowIndexes);
@@ -209,7 +210,7 @@ export class PivotTableConverter {
     }
   }
 
-  private splitRowGroupHeader(cells: LmrPivotTableCell[][], columnIndex: number, currentIndex: number, background: string, summary: string, rowIndexes: number[], title?: string, constraint?: Constraint, label?: string) {
+  private splitRowGroupHeader(cells: LmrPivotTableCell[][], columnIndex: number, currentIndex: number, background: string, summary: string, rowIndexes: number[], expandable: boolean, title?: string, constraint?: Constraint, label?: string) {
     let colSpan = this.rowLevels - columnIndex;
     const stickyStart = this.isRowLevelSticky(columnIndex);
 
@@ -227,6 +228,7 @@ export class PivotTableConverter {
         colSpan: colSpan - newColspan,
         background,
         summary: undefined,
+        expandable,
       };
 
       colSpan = newColspan;
@@ -244,6 +246,7 @@ export class PivotTableConverter {
       background,
       summary,
       rowIndexes,
+      expandable,
     };
   }
 

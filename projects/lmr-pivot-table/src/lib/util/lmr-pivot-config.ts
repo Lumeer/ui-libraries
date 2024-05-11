@@ -73,7 +73,14 @@ export interface LmrPivotExpression {
   operation: LmrPivotExpressionOperation;
   operands: LmrPivotOperand[];
   title: string;
-  type: 'expression'
+  type: 'expression';
+  position: LmrPivotPosition;
+  expandable?: boolean;
+}
+
+export enum LmrPivotPosition {
+  StickToEnd = 'stickToEnd',
+  AfterHeader = 'afterHeader',
 }
 
 export type LmrPivotExpressionOperation = 'add' | 'subtract' | 'multiply' | 'divide';

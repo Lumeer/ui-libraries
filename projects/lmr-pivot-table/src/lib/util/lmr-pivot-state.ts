@@ -14,11 +14,11 @@ export function isCellExpandable(cell: LmrPivotTableCell): boolean {
 }
 
 export function isCellColumnsExpandable(cell: LmrPivotTableCell): boolean {
-  return cell?.childIndexes?.length > 1;
+  return cell?.expandable && cell?.childIndexes?.length > 1;
 }
 
 export function isCellRowsExpandable(cell: LmrPivotTableCell): boolean {
-  return cell?.rowIndexes?.length > 1;
+  return cell?.expandable && cell?.rowIndexes?.length > 1;
 }
 
 export function toggleExpanded(cell: LmrPivotTableCell, columnIndex: number, state: LmrPivotTableState): LmrPivotTableState {
@@ -140,6 +140,10 @@ function createCellsChildIndexesMap(rowCells: LmrPivotTableCell[][]): number[][]
 
 function createRowsChildIndexesMap(rowCells: LmrPivotTableCell[]): number[][] {
   return (rowCells || []).reduce((map, cell, index) => {
+    if (!cell.expandable) {
+      return map
+    }
+
     for (const childIndex of (cell?.rowIndexes || [])) {
       if (!map[childIndex])
         map[childIndex] = []

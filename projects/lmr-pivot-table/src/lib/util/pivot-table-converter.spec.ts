@@ -21,7 +21,7 @@ import {PercentageConstraint, PercentageConstraintConfig} from '@lumeer/data-fil
 import {LmrPivotData} from './lmr-pivot-data';
 import {PivotTableConverter} from './pivot-table-converter';
 import {COLOR_GRAY100, COLOR_GRAY200} from './lmr-pivot-constants';
-import {LmrPivotTransform} from './lmr-pivot-config';
+import {LmrPivotPosition, LmrPivotTransform} from './lmr-pivot-config';
 
 describe('Pivot table converter', () => {
   const headerSummaryString = 'H';
@@ -195,7 +195,8 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
-      childIndexes: [0, 1]
+      childIndexes: [0, 1],
+      expandable: true,
     });
     expect(pivotTable.cells[0][1]).toEqual({
       value: 'a1',
@@ -207,7 +208,8 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
-      childIndexes: [0]
+      childIndexes: [0],
+      expandable: true,
     });
     expect(pivotTable.cells[1][0]).toEqual(undefined);
     expect(pivotTable.cells[1][1]).toEqual({
@@ -221,6 +223,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       childIndexes: [1],
+      expandable: true,
     });
     expect(pivotTable.cells[2][0]).toEqual({
       value: 'A',
@@ -234,6 +237,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[2][1]).toEqual(undefined);
 
@@ -248,6 +252,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       childIndexes: [3],
+      expandable: true,
     });
     expect(pivotTable.cells[3][1]).toEqual({
       value: 'a1',
@@ -260,6 +265,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       childIndexes: [3],
+      expandable: true,
     });
     expect(pivotTable.cells[4][0]).toEqual({
       value: 'B',
@@ -273,6 +279,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[4][1]).toEqual(undefined);
 
@@ -286,7 +293,8 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
-      childIndexes: [5, 6, 7]
+      childIndexes: [5, 6, 7],
+      expandable: true,
     });
     expect(pivotTable.cells[5][1]).toEqual({
       value: 'a2',
@@ -298,7 +306,8 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
-      childIndexes: [5]
+      childIndexes: [5],
+      expandable: true,
     });
     expect(pivotTable.cells[6][0]).toEqual(undefined);
     expect(pivotTable.cells[6][1]).toEqual({
@@ -311,7 +320,8 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
-      childIndexes: [6]
+      childIndexes: [6],
+      expandable: true,
     });
     expect(pivotTable.cells[7][0]).toEqual(undefined);
     expect(pivotTable.cells[7][1]).toEqual({
@@ -324,7 +334,8 @@ describe('Pivot table converter', () => {
       constraint: undefined,
       label: undefined,
       stickyStart: undefined,
-      childIndexes: [7]
+      childIndexes: [7],
+      expandable: true,
     });
     expect(pivotTable.cells[8][0]).toEqual({
       value: 'C',
@@ -338,6 +349,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[8][1]).toEqual(undefined);
     expect(pivotTable.cells[9][0]).toEqual({
@@ -352,6 +364,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[9][1]).toEqual(undefined);
 
@@ -964,8 +977,8 @@ describe('Pivot table converter', () => {
     });
     expect(pivotTable.cells[0][1]).toEqual({
       value: 'H2',
-      rowSpan: 1,
-      colSpan: 2,
+      rowSpan: 2,
+      colSpan: 1,
       isAttributeHeader: true,
       cssClass: PivotTableConverter.rowAttributeHeaderClass,
       stickyTop: undefined,
@@ -985,6 +998,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[6][0]).toEqual({
       value: 'B',
@@ -997,6 +1011,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       childIndexes: [6, 7],
+      expandable: true,
     });
     expect(pivotTable.cells[8][0]).toEqual({
       value: 'B',
@@ -1010,6 +1025,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
 
     expect(pivotTable.cells[0][2]).toEqual({
@@ -1154,8 +1170,26 @@ describe('Pivot table converter', () => {
           columnHeaderAttributes: [],
           dataResources: [],
           rowsConfig: [
-            {showSums: true, expressions: [{operation: 'add', title: expression1Title, type: 'expression', operands: [{type: 'header', value: 'A'}, {type: 'header', value: 'B'}]}]},
-            {showSums: true, expressions: [{operation: 'multiply', title: expression2Title, type: 'expression', operands: [{type: 'header', value: 'a2'}, {type: 'header', value: 'a3'}]}]},
+            {
+              showSums: true, expressions: [{
+                operation: 'add',
+                title: expression1Title,
+                type: 'expression',
+                operands: [{type: 'header', value: 'A'}, {type: 'header', value: 'B'}],
+                expandable: true,
+                position: LmrPivotPosition.AfterHeader,
+              }]
+            },
+            {
+              showSums: true, expressions: [{
+                operation: 'multiply',
+                title: expression2Title,
+                type: 'expression',
+                operands: [{type: 'header', value: 'a2'}, {type: 'header', value: 'a3'}],
+                expandable: true,
+                position: LmrPivotPosition.AfterHeader,
+              }]
+            },
           ],
           columnsConfig: [{}, {}],
         },
@@ -1178,6 +1212,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [3, 4, 5],
+      expandable: true
     });
     expect(pivotTable.cells[6][0]).toEqual({
       value: 'A',
@@ -1191,6 +1226,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[9][1]).toEqual({
       value: undefined,
@@ -1204,6 +1240,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [7, 8, 9],
+      expandable: true,
     });
     expect(pivotTable.cells[11][0]).toEqual({
       value: undefined,
@@ -1217,6 +1254,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [2, 3, 4, 7, 8, 11],
+      expandable: true,
     });
 
     expect(pivotTable.cells[14][1]).toEqual({
@@ -1231,6 +1269,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [12, 13, 14],
+      expandable: true,
     });
     expect(pivotTable.cells[16][0]).toEqual({
       value: 'C',
@@ -1244,6 +1283,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
     expect(pivotTable.cells[17][0]).toEqual({
       value: undefined,
@@ -1257,6 +1297,7 @@ describe('Pivot table converter', () => {
       label: undefined,
       stickyStart: undefined,
       rowIndexes: [],
+      expandable: false,
     });
 
     expect(pivotTable.cells[2].slice(2).map(v => v.value)).toEqual(['4', '3', '5', '2', '8']);

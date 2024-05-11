@@ -41,4 +41,5 @@ export interface LmrPivotTableCell {
   rowIndexes?: number[];
   childIndexes?: number[];
   originalRowIndex?: number;
+  expandable?: boolean;
 }
