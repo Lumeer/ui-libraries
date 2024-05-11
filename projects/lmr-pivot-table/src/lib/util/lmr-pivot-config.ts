@@ -79,8 +79,8 @@ export interface LmrPivotExpression {
 }
 
 export enum LmrPivotPosition {
+  BeforeHeader = 'beforeHeader',
   StickToEnd = 'stickToEnd',
-  AfterHeader = 'afterHeader',
 }
 
 export type LmrPivotExpressionOperation = 'add' | 'subtract' | 'multiply' | 'divide';

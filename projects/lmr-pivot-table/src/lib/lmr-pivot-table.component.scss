@@ -52,18 +52,11 @@
       transform: translateY(-50%);
     }
 
-    &.expanded::after {
+    &.expanded.expandable-rows::after, &.expanded::after {
       border-left: 5px solid transparent;
       border-right: 5px solid transparent;
       border-top: 5px solid #253746;
       border-bottom: 0;
-    }
-
-    &.expanded.expandable-rows::after {
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 0;
-      border-bottom: 5px solid #253746;
     }
   }
 }

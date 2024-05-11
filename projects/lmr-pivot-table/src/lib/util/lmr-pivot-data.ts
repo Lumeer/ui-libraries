@@ -68,7 +68,7 @@ export interface LmrPivotDataHeader {
 }
 
 export interface LmrPivotDataHeaderExpression extends LmrPivotExpression {
-  lastHeaderIndex?: number;
+  firstHeaderIndex?: number;
   operands: LmrPivotDataHeaderOperand[];
 }
 

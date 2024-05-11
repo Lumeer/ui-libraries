@@ -21,7 +21,7 @@ import {createRange, deepObjectCopy, isArray, isNotNullOrUndefined, isNullOrUnde
 
 import {LmrPivotData, LmrPivotDataHeader, LmrPivotDataHeaderExpression, LmrPivotDataHeaderOperand, LmrPivotDimensionConfig, LmrPivotStemData} from './lmr-pivot-data';
 import {LmrPivotTable, LmrPivotTableCell} from './lmr-pivot-table';
-import {LmrPivotExpression, LmrPivotHeaderOperand, LmrPivotOperand, LmrPivotSort, LmrPivotTransform, LmrPivotValueType} from './lmr-pivot-config';
+import {LmrPivotExpression, LmrPivotHeaderOperand, LmrPivotOperand, LmrPivotPosition, LmrPivotSort, LmrPivotTransform, LmrPivotValueType} from './lmr-pivot-config';
 import {COLOR_GRAY100, COLOR_GRAY200, COLOR_GRAY300, COLOR_GRAY400, COLOR_GRAY500} from './lmr-pivot-constants';
 
 interface HeaderGroupInfo {
@@ -155,6 +155,11 @@ export class PivotTableConverter {
   ) {
     let currentIndex = startIndex;
     for (const header of headers) {
+
+      const beforeExpressions = (header.expressions || []).filter(exp => exp.position === LmrPivotPosition.BeforeHeader)
+      this.fillCellsForExpressions(cells, rowGroupsInfo, level, currentIndex, beforeExpressions)
+      currentIndex += beforeExpressions.length
+
       const rowSpan = getDirectHeaderChildCount(header, level, showSums);
       cells[currentIndex][level] = {
         value: this.formatRowHeader(header.title, level),
@@ -184,16 +189,9 @@ export class PivotTableConverter {
         this.fillCellsForRow(cells, header.targetIndex);
       }
 
-      currentIndex += getHeaderChildCount(header, level, showSums);
-
-      const expressions = header.expressions || []
-      for (let i = 0; i < expressions.length; i++) {
-        const expressionIndex = currentIndex - (expressions.length - i)
-        const background = this.getSummaryBackground(level);
-        const {indexes} = this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
-        this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title, indexes, expressions[i].expandable)
-        rowGroupsInfo[expressionIndex] = {background, indexes: [], expression: expressions[i], level};
-      }
+      const afterExpressions = (header.expressions || []).filter(exp => exp.position === LmrPivotPosition.StickToEnd)
+      currentIndex += getHeaderChildCount(header, level, showSums) - beforeExpressions.length;
+      this.fillCellsForExpressions(cells, rowGroupsInfo, level, currentIndex - afterExpressions.length, afterExpressions)
     }
 
     if (showSums[level]) {
@@ -207,6 +205,16 @@ export class PivotTableConverter {
       rowGroupsInfo[currentIndex] = {background, indexes: transformedRowIndexes, level};
 
       this.fillCellsForGroupedRow(cells, rowIndexes, currentIndex, background);
+    }
+  }
+
+  private fillCellsForExpressions(cells: LmrPivotTableCell[][], rowGroupsInfo: HeaderGroupInfo[], level: number, currentIndex: number, expressions: LmrPivotDataHeaderExpression[]) {
+    for (let i = 0; i < expressions.length; i++) {
+      const expressionIndex = currentIndex + i
+      const background = this.getSummaryBackground(level);
+      const {indexes} = this.fillCellsForExpressionRow(cells, expressions[i], expressionIndex, background)
+      this.splitRowGroupHeader(cells, level, expressionIndex, background, expressions[i].title, indexes, expressions[i].expandable)
+      rowGroupsInfo[expressionIndex] = {background, indexes: [], expression: expressions[i], level};
     }
   }
 
@@ -423,7 +431,7 @@ export class PivotTableConverter {
         };
       }
     }
-    return {indexes: uniqueValues([...rowIndexes, rowIndexInCells])}
+    return {indexes: uniqueValues([rowIndexInCells, ...rowIndexes])}
   }
 
   private evaluateExpression(expression: LmrPivotDataHeaderExpression, columns: number[]): {value: number; dataResources: DataResource[]; indexes: number[]  } {
@@ -881,10 +889,10 @@ function fillExpressionsToHeaders(headers: LmrPivotDataHeader[], configs: LmrPiv
   const headersCopy = [...(headers || [])]
   for (const expression of expressions) {
     const dataHeaderExpression = extendPivotExpression(expression, headers)
-    if (dataHeaderExpression.lastHeaderIndex >= 0) {
-      const lastHeaderIndex = dataHeaderExpression.lastHeaderIndex
-      const newHeader: LmrPivotDataHeader = {...headersCopy[lastHeaderIndex], expressions: [...(headersCopy[lastHeaderIndex].expressions || []), dataHeaderExpression]}
-      headersCopy.splice(lastHeaderIndex, 1, newHeader)
+    if (dataHeaderExpression.firstHeaderIndex >= 0) {
+      const firstHeaderIndex = dataHeaderExpression.firstHeaderIndex
+      const newHeader: LmrPivotDataHeader = {...headersCopy[firstHeaderIndex], expressions: [...(headersCopy[firstHeaderIndex].expressions || []), dataHeaderExpression]}
+      headersCopy.splice(firstHeaderIndex, 1, newHeader)
     }
   }
 
@@ -899,13 +907,13 @@ function fillExpressionsToHeaders(headers: LmrPivotDataHeader[], configs: LmrPiv
 
 function extendPivotExpression(expression: LmrPivotExpression, headers: LmrPivotDataHeader[]): LmrPivotDataHeaderExpression {
   const dataHeaderOperands: LmrPivotDataHeaderOperand[] = [];
-  let lastHeaderIndex: number = -1
+  let firstHeaderIndex: number = Number.MAX_SAFE_INTEGER
 
   function traverse(operands: LmrPivotOperand[]): void {
-    for (const operand of operands){
+    for (const operand of operands) {
       if (operand.type === 'header') {
         const indexes = getOperandIndexesInHeaders(operand, headers)
-        lastHeaderIndex = Math.max(lastHeaderIndex, ...indexes)
+        firstHeaderIndex = Math.min(firstHeaderIndex, ...indexes)
         const operandHeaders = indexes.map(index => headers[index])
         dataHeaderOperands.push({...operand, headers: operandHeaders});
       } else if (operand.type === 'expression') {
@@ -918,7 +926,15 @@ function extendPivotExpression(expression: LmrPivotExpression, headers: LmrPivot
 
   traverse(expression.operands);
 
-  return {...expression, lastHeaderIndex, operands: dataHeaderOperands};
+  if (expression.position === LmrPivotPosition.StickToEnd) {
+    firstHeaderIndex = headers.length - 1
+  }
+
+  if (firstHeaderIndex === Number.MAX_SAFE_INTEGER) {
+    firstHeaderIndex = -1
+  }
+
+  return {...expression, firstHeaderIndex, operands: dataHeaderOperands};
 }
 
 function getOperandIndexesInHeaders(operand: LmrPivotHeaderOperand, headers: LmrPivotDataHeader[]): number[] {
@@ -1043,6 +1059,7 @@ function createTransformationMap(
 ): number[] {
   const array = [];
   iterateThroughTransformationMap(headers, additionalNum, array, 0, showSums, numberOfSums);
+  console.log(array)
   return array;
 }
 
@@ -1057,12 +1074,15 @@ function iterateThroughTransformationMap(
   let additional = additionalNum;
   for (let i = 0; i < headers.length; i++) {
     const header = headers[i];
+    const beforeExpressionsLength = (header.expressions || []).filter(exp => exp.position === LmrPivotPosition.BeforeHeader).length
+    const afterExpressionsLength = (header.expressions || []).filter(exp => exp.position === LmrPivotPosition.StickToEnd).length
     if (header.children) {
+      additional += beforeExpressionsLength
       iterateThroughTransformationMap(header.children, additional, array, level + 1, showSums, numberOfSums);
-      additional += getHeaderChildCount(header, level, showSums, numberOfSums);
+      additional += (getHeaderChildCount(header, level, showSums, numberOfSums) - beforeExpressionsLength);
     } else if (isNotNullOrUndefined(header.targetIndex)) {
-      array[header.targetIndex] = i + additional;
-      additional += (header.expressions || []).length;
+      array[header.targetIndex] = i + additional + beforeExpressionsLength;
+      additional += beforeExpressionsLength + afterExpressionsLength;
     }
   }
 }
