@@ -1059,7 +1059,6 @@ function createTransformationMap(
 ): number[] {
   const array = [];
   iterateThroughTransformationMap(headers, additionalNum, array, 0, showSums, numberOfSums);
-  console.log(array)
   return array;
 }
 

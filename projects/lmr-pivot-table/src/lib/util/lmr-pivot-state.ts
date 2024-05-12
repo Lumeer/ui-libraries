@@ -140,7 +140,7 @@ function createCellsChildIndexesMap(rowCells: LmrPivotTableCell[][]): number[][]
 
 function createRowsChildIndexesMap(rowCells: LmrPivotTableCell[]): number[][] {
   return (rowCells || []).reduce((map, cell, index) => {
-    if (!cell.expandable) {
+    if (!cell?.expandable) {
       return map
     }
 
