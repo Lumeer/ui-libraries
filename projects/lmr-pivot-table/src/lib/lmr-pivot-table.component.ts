@@ -21,10 +21,11 @@ interface Data {
 }
 
 @Component({
-  selector: 'lmr-pivot-table',
-  templateUrl: 'lmr-pivot-table.component.html',
-  styleUrls: ['./lmr-pivot-table.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'lmr-pivot-table',
+    templateUrl: 'lmr-pivot-table.component.html',
+    styleUrls: ['./lmr-pivot-table.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class LmrPivotTableComponent implements OnInit, OnChanges {
 

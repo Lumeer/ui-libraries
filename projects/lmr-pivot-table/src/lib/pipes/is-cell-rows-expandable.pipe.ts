@@ -22,7 +22,8 @@ import {LmrPivotTableCell} from '../util/lmr-pivot-table';
 import {isCellExpandable, isCellRowsExpandable} from '../util/lmr-pivot-state';
 
 @Pipe({
-  name: 'isCellRowsExpandable',
+    name: 'isCellRowsExpandable',
+    standalone: false
 })
 export class IsCellRowsExpandablePipe implements PipeTransform {
   public transform(cell: LmrPivotTableCell): boolean {

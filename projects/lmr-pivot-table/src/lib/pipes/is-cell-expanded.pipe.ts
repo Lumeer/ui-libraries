@@ -22,7 +22,8 @@ import {LmrPivotTable, LmrPivotTableCell} from '../util/lmr-pivot-table';
 import {areCellsSame, LmrPivotTableState} from '../util/lmr-pivot-state';
 
 @Pipe({
-  name: 'isCellExpanded',
+    name: 'isCellExpanded',
+    standalone: false
 })
 export class IsCellExpandedPipe implements PipeTransform {
   public transform(cell: LmrPivotTableCell, columnIndex: number, state: LmrPivotTableState): boolean {

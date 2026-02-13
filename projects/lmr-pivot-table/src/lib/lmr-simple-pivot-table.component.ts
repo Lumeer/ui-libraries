@@ -7,9 +7,10 @@ import {LmrSimplePivotConfig} from './util/lmr-simple-pivot-config';
 import {LmrEmptyTablesTemplateDirective, LmrTableCellTemplateDirective} from './directives/lmr-templates.directive';
 
 @Component({
-  selector: 'lmr-simple-pivot-table',
-  templateUrl: 'lmr-simple-pivot-table.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'lmr-simple-pivot-table',
+    templateUrl: 'lmr-simple-pivot-table.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class LmrSimplePivotTableComponent implements OnChanges {
 

@@ -1,10 +1,10 @@
 {
   "name": "@lumeer/pivot",
-  "version": "0.0.12",
+  "version": "0.1.0",
   "peerDependencies": {
-    "@angular/cdk": "^16.2.12",
-    "@angular/common": "^16.2.12",
-    "@angular/core": "^16.2.12",
+    "@angular/cdk": "^19.0.0",
+    "@angular/common": "^19.0.0",
+    "@angular/core": "^19.0.0",
     "@lumeer/data-filters": "^0.8.6",
     "@lumeer/utils": "^0.1.3"
   },

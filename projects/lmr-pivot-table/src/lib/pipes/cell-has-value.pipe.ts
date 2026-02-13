@@ -23,7 +23,8 @@ import {isNotNullOrUndefined} from '@lumeer/utils';
 import {LmrPivotTableCell} from '../util/lmr-pivot-table';
 
 @Pipe({
-  name: 'cellHasValue',
+    name: 'cellHasValue',
+    standalone: false
 })
 export class CellHasValuePipe implements PipeTransform {
   public transform(cell: LmrPivotTableCell): boolean {

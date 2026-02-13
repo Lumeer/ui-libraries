@@ -21,7 +21,8 @@ import {contrastColor} from '../util/pivot-util';
 
 
 @Pipe({
-  name: 'contrastColor',
+    name: 'contrastColor',
+    standalone: false
 })
 @Injectable({
   providedIn: 'root',
