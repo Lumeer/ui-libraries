@@ -21,7 +21,8 @@ import {Pipe, PipeTransform} from '@angular/core';
 import {LmrPivotData} from '../util/lmr-pivot-data';
 
 @Pipe({
-  name: 'pivotDataEmpty',
+    name: 'pivotDataEmpty',
+    standalone: false
 })
 export class PivotDataEmptyPipe implements PipeTransform {
   public transform(value: LmrPivotData): boolean {

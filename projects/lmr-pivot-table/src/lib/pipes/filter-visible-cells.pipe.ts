@@ -22,7 +22,8 @@ import {LmrPivotTable, LmrPivotTableCell} from '../util/lmr-pivot-table';
 import {filterVisibleCells, LmrPivotTableState} from '../util/lmr-pivot-state';
 
 @Pipe({
-  name: 'filterVisibleCells',
+    name: 'filterVisibleCells',
+    standalone: false
 })
 export class FilterVisibleCellsPipe implements PipeTransform {
   public transform(table: LmrPivotTable, state: LmrPivotTableState): LmrPivotTableCell[][] {
