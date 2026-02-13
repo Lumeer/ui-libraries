@@ -1096,7 +1096,7 @@ describe('Pivot table converter', () => {
     expect(pivotTable.cells[8].slice(2).map(v => v.value)).toEqual(['3', '4', '7', '8', '2', '5', '15', '22']);
   });
 
-  fit('should return table with rows expressions', () => {
+  it('should return table with rows expressions', () => {
     const expression1Title = 'A + B'
     const expression2Title = 'a2 * a3'
 
